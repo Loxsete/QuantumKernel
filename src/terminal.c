@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include "terminal.h"
 #include "string.h"
+#include "syscall.h"
 
 #define VGA ((uint16_t*)0xB8000)
 #define W 80
@@ -83,20 +84,8 @@ void term_process_char(char c) {
                 term_puts(" clear - clear screen\n");
                 term_puts(" syscall - test syscall\n");
                 term_puts("> ");
-            } else if (strcmp(line_buffer, "syscall") == 0) {
-                extern void syscall_handler(void);  
-                idt_set_gate(0x80, (uint32_t)syscall_handler, 0x08, 0xEE);
-
-                term_puts("Syscall handler installed\n> ");
-
-                asm volatile (
-                    "mov $1, %%eax\n"      // SYS_PUTS
-                    "mov %0, %%ebx\n"
-                    "int $0x80\n"
-                    :
-                    : "r"("Hello from syscall!\n")
-                    : "eax", "ebx"
-                );
+            
+             
             } else {
                 term_puts("Unknown command: ");
                 term_puts(line_buffer);

@@ -1,9 +1,8 @@
-// syscall.h
 #pragma once
+#include <stdint.h>
 
-#define SYS_PUTS      1
-#define SYS_PUTC      2
-#define SYS_GETCHAR   3
-#define SYS_CLEAR     4
-#define SYS_CURSOR    5
-#define SYS_EXIT      6
+#define SYS_WRITE 1
+#define SYS_EXIT  2
+
+int write(int fd, const char* buf, uint32_t len);
+void exit(void);

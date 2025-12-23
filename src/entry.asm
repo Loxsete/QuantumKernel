@@ -9,8 +9,11 @@ dd -(0x1BADB002 + 0x0) ; Checksum
 section .bss
 align 16
 stack_bottom:
-resb 16384           ; 16 KB stack
+    resb 16384
 stack_top:
+    
+global stack_top
+
 
 section .text
 global _start
@@ -48,3 +51,8 @@ syscall_handler:
 
     popa
     iret
+
+
+extern syscall_invoke
+
+

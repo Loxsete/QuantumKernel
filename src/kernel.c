@@ -2,11 +2,17 @@
 #include "idt.h"
 #include "terminal.h"
 #include "pic.h"
+#include "gdt.h"
+#include "syscall.h"
+#include "user.h"
+#include "tss.h"
 
 void kernel_main(void) {
     /* --- init --- */
     term_init();
-    
+    gdt_init();
+    tss_init();
+
     term_puts("Booting kernel...\n");
 
     pic_remap();
@@ -16,22 +22,13 @@ void kernel_main(void) {
     extern void syscall_handler(void);
     idt_set_gate(0x80, (uint32_t)syscall_handler, 0x08, 0xEE);
 
-    
     asm volatile ("sti");
 
     term_puts("Kernel ready\n> ");
 
-    /* test syscall PUTS */
-    asm volatile (
-        "mov $1, %%eax\n"      /* SYS_PUTS */
-        "mov %0, %%ebx\n"
-        "int $0x80\n"
-        :
-        : "r"("Hello from syscall!\n")
-        : "eax", "ebx"
-    );
+   
+    enter_user();  // user_entry.asm + ring3 stack
 
-    
     while (1) {
         asm volatile ("hlt");
     }

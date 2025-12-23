@@ -15,11 +15,12 @@ LDFLAGS="-m elf_i386"
 echo "[*] Creating build dir"
 mkdir -p "$BUILD_DIR"
 
-echo "[*] Assembling entry.asm"
-$AS $ASFLAGS src/entry.asm -o "$BUILD_DIR/entry.o"
-
-echo "[*] Assembling irq.asm"
-$AS $ASFLAGS src/irq.asm -o "$BUILD_DIR/irq.o"
+echo "[*] Assembling ASM files"
+for file in src/*.asm; do
+    obj="$BUILD_DIR/$(basename "$file" .asm).o"
+    echo "    AS $file"
+    $AS $ASFLAGS "$file" -o "$obj"
+done
 
 
 echo "[*] Compiling C files"
