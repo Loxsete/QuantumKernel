@@ -8,8 +8,9 @@ A minimal 32-bit operating system kernel with basic system call support and an i
 - Keyboard input handling
 - VGA text mode terminal
 - System call interface (int 0x80)
-- Simple command shell with built-in commands
-- Basic memory management (heap via sbrk)
+
+
+<img width="826" height="254" alt="image" src="https://github.com/user-attachments/assets/03be60f8-d6f5-428a-90e0-a0ac88252b0a" />
 
 ## Prerequisites
 
