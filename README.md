@@ -72,14 +72,8 @@ qemu-system-x86_64 -kernel build/kernel.bin
 To run on real virtualization software, you'll need to create a bootable ISO. This requires GRUB:
 
 ```bash
-mkdir -p isodir/boot/grub
-cp build/kernel.bin isodir/boot/
-cat > isodir/boot/grub/grub.cfg << EOF
-menuentry "MyOS" {
-    multiboot /boot/kernel.bin
-}
-EOF
-grub-mkrescue -o myos.iso isodir
+chmod +x iso.sh
+./iso.sh
 ```
 
 Then boot `myos.iso` in your VM software.
