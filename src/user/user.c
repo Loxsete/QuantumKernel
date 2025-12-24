@@ -1,5 +1,7 @@
-#include "syscall.h"
-#include "string.h"
+#include "syscall/syscall.h"
+#include "lib/libc.h"
+#include "lib/string.h"
+#include <stdint.h>
 
 #define BUF_SIZE 128
 
@@ -51,6 +53,7 @@ void user_main(void) {
                     write(1, "  clear      - clear screen\n", 27);
                     write(1, "  diskread   - read sector 0\n", 29);
                     write(1, "  diskwrite  - write test data\n", 31);
+                    write(1, "  sleep N    - sleep N milliseconds\n", 36);
                     
                 } else if (strcmp(buf, "clear") == 0) {
                     clear();
@@ -58,7 +61,6 @@ void user_main(void) {
                 } else if (strcmp(buf, "diskread") == 0) {
                     uint8_t sector[512];
                     write(1, "Reading sector 0...\n", 20);
-                    
                     int result = disk_read(0, sector);
                     if (result == 0) {
                         write(1, "Success! First 64 bytes:\n", 25);
@@ -73,21 +75,21 @@ void user_main(void) {
                     
                 } else if (strcmp(buf, "diskwrite") == 0) {
                     uint8_t sector[512];
-                    
-                    // Заполняем тестовыми данными
                     for (int i = 0; i < 512; i++)
                         sector[i] = i & 0xFF;
                     
-                    // Записываем в сектор 1 (не 0, чтобы не испортить MBR)
                     write(1, "Writing test data to sector 1...\n", 34);
                     int result = disk_write(1, sector);
-                    
                     if (result == 0) {
                         write(1, "Write successful!\n", 18);
                     } else {
                         write(1, "Error writing disk\n", 19);
                     }
                     
+                } else if (strncmp(buf, "sleep ", 6) == 0) {
+                    int ms = atoi(buf + 6);
+                    sleep_sys(ms);
+                
                 } else {
                     write(1, "Unknown command\n", 16);
                 }

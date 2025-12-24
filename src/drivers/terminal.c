@@ -1,7 +1,7 @@
 #include <stdint.h>
-#include "terminal.h"
-#include "string.h"
-#include "syscall.h"
+#include "drivers/terminal.h"
+#include "lib/string.h"
+#include "syscall/syscall.h"
 
 #define VGA ((uint16_t*)0xB8000)
 #define W 80

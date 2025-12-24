@@ -1,14 +1,15 @@
 #include <stdint.h>
-#include "terminal.h"
-#include "keyboard.h"
-#include "syscall.h"
-#include "syscall_raw.h"
-#include "ata.h"  
+#include "drivers/terminal.h"
+#include "drivers/keyboard.h"
+#include "drivers/timer.h"
+#include "syscall/syscall.h"
+#include "syscall/syscall_raw.h"
+#include "drivers/ata.h"
 
 typedef struct regs {
-    uint32_t gs, fs, es, ds;
     uint32_t edi, esi, ebp, esp;
     uint32_t ebx, edx, ecx, eax;
+    uint32_t gs, fs, es, ds;
 } regs_t;
 
 void syscall_dispatch(regs_t* r) {
@@ -43,7 +44,7 @@ void syscall_dispatch(regs_t* r) {
             break;
             
         case SYS_CLEAR:
-            term_clear();   
+            term_clear();
             r->eax = 0;
             break;
             
@@ -75,13 +76,19 @@ void syscall_dispatch(regs_t* r) {
             break;
         }
         
+        case SYS_SLEEP: {
+            uint32_t ms = r->ebx;
+            sleep(ms);
+            r->eax = 0;
+            break;
+        }
+        
         default:
             term_puts("[unknown syscall]\n");
             r->eax = -1;
             break;
     }
 }
-
 
 __attribute__((used))
 int write(int fd, const char* buf, uint32_t len) {
@@ -113,4 +120,9 @@ int disk_read(uint32_t lba, void* buffer) {
 __attribute__((used))
 int disk_write(uint32_t lba, const void* buffer) {
     return syscall_invoke(SYS_DISK_WRITE, lba, (int)buffer, 0);
+}
+
+__attribute__((used))
+void sleep_sys(uint32_t ms) {
+    syscall_invoke(SYS_SLEEP, ms, 0, 0);
 }

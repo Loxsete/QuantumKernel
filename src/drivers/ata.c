@@ -1,6 +1,6 @@
-#include "ata.h"
-#include "io.h"
-#include "terminal.h"
+#include "drivers/ata.h"
+#include "drivers/io.h"
+#include "drivers/terminal.h"
 
 static void ata_wait_busy(void) {
     uint8_t status;

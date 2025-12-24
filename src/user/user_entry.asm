@@ -4,6 +4,8 @@ global enter_user
 extern user_main
 
 enter_user:
+    cli
+    
     mov ax, 0x23
     mov ds, ax
     mov es, ax
@@ -11,7 +13,7 @@ enter_user:
     mov gs, ax
     
     push 0x23
-    push esp
+    push 0x9FFFF0
     
     pushf
     pop eax
