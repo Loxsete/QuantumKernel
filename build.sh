@@ -17,6 +17,7 @@ SRC_DIRS="src/kernel src/cpu src/drivers src/mm src/user src/syscall src/lib src
 
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
+YELLOW='\033[1;33m'
 NC='\033[0m'
 
 echo "${BLUE}[*] Cleaning build directory${NC}"
@@ -58,16 +59,33 @@ $LD $LDFLAGS -T src/kernel/link.ld \
 
 echo "${BLUE}[*] Creating disk image${NC}"
 if [ ! -f "$DISK_IMG" ]; then
-    echo "    Creating new 16MB disk: $DISK_IMG"
+    echo "    ${YELLOW}Creating new 16MB disk: $DISK_IMG${NC}"
     dd if=/dev/zero of="$DISK_IMG" bs=1M count=16 2>/dev/null
 else
-    echo "    Using existing disk: $DISK_IMG"
+    echo "    ${YELLOW}Using existing disk: $DISK_IMG${NC}"
 fi
 
+echo "${BLUE}[*] Formatting disk as FAT32${NC}"
+mkfs.fat -F 32 "$DISK_IMG"
+
+echo "${BLUE}[*] Writing text.txt to disk image${NC}"
+echo "#!/bin/sh
+echo Hello from FAT32
+echo Kernel test file
+" > "$BUILD_DIR/text.txt"
+
+mcopy -i "$DISK_IMG" "$BUILD_DIR/text.txt" ::text.txt
+
+
 echo "${GREEN}[✓] Build complete!${NC}"
+echo ""
+echo "${BLUE}[*] Disk image: $DISK_IMG (16MB)${NC}"
+echo "${BLUE}[*] Kernel: $BUILD_DIR/kernel.bin${NC}"
 echo ""
 echo "${BLUE}[*] Running QEMU with disk${NC}"
 qemu-system-x86_64 \
     -kernel "$BUILD_DIR/kernel.bin" \
     -hda "$DISK_IMG" \
-    -m 128M
+    -m 128M \
+    -no-reboot \
+    -no-shutdown

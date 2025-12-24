@@ -3,106 +3,236 @@
 #include "lib/string.h"
 #include <stdint.h>
 
-#define BUF_SIZE 128
+#define BUF_SIZE 256
+#define FILE_BUF 512
 
 static void strip_newline(char* s) {
-    int len = strlen(s);
-    if (len == 0) return;
-    if (s[len - 1] == '\n' || s[len - 1] == '\r') 
-        s[len - 1] = 0;
+    int l = strlen(s);
+    while (l > 0 && (s[l - 1] == '\n' || s[l - 1] == '\r')) {
+        s[l - 1] = 0;
+        l--;
+    }
 }
 
-static void print_hex_byte(uint8_t b) {
-    const char hex[] = "0123456789ABCDEF";
-    char out[3];
-    out[0] = hex[b >> 4];
-    out[1] = hex[b & 0xF];
-    out[2] = ' ';
-    write(1, out, 3);
+static void puts(const char* s) {
+    write(1, s, strlen(s));
+}
+
+static void prompt(void) {
+    puts("\n> ");
+}
+
+static char* next_token(char** s) {
+    while (**s == ' ') (*s)++;
+    if (**s == 0) return 0;
+    char* start = *s;
+    while (**s && **s != ' ') (*s)++;
+    if (**s) {
+        **s = 0;
+        (*s)++;
+    }
+    return start;
 }
 
 void user_main(void) {
     char buf[BUF_SIZE];
-    int pos = 0;
-    
-    write(1, "Simple shell ready!\n> ", 22);
-    
+
+    puts("FAT32 test shell ready\n");
+    prompt();
+
     while (1) {
+        int pos = 0;
         char c;
-        int n = read(0, &c, 1);
-        if (n <= 0) continue;
-        
-        if (c == '\b') {
-            if (pos > 0) {
-                pos--;
-                write(1, "\b \b", 3);
+
+        while (1) {
+            if (read(0, &c, 1) <= 0) continue;
+
+            if (c == '\b') {
+                if (pos > 0) {
+                    pos--;
+                    write(1, "\b \b", 3);
+                }
+                continue;
             }
+
+            write(1, &c, 1);
+
+            if (c == '\n' || c == '\r') {
+                buf[pos] = 0;
+                break;
+            }
+
+            if (pos < BUF_SIZE - 1)
+                buf[pos++] = c;
+        }
+
+        strip_newline(buf);
+        if (buf[0] == 0) {
+            prompt();
             continue;
         }
-        
-        write(1, &c, 1);
-        
-        if (c == '\n' || c == '\r') {
-            buf[pos] = 0;
-            strip_newline(buf);
-            
-            if (pos > 0) {
-                if (strcmp(buf, "help") == 0) {
-                    write(1, "Available commands:\n", 20);
-                    write(1, "  help       - show this help\n", 30);
-                    write(1, "  clear      - clear screen\n", 27);
-                    write(1, "  diskread   - read sector 0\n", 29);
-                    write(1, "  diskwrite  - write test data\n", 31);
-                    write(1, "  sleep N    - sleep N milliseconds\n", 36);
-                    
-                } else if (strcmp(buf, "clear") == 0) {
-                    clear();
-                    
-                } else if (strcmp(buf, "diskread") == 0) {
-                    uint8_t sector[512];
-                    write(1, "Reading sector 0...\n", 20);
-                    int result = disk_read(0, sector);
-                    if (result == 0) {
-                        write(1, "Success! First 64 bytes:\n", 25);
-                        for (int i = 0; i < 64; i++) {
-                            print_hex_byte(sector[i]);
-                            if ((i + 1) % 16 == 0)
-                                write(1, "\n", 1);
-                        }
-                    } else {
-                        write(1, "Error reading disk\n", 19);
-                    }
-                    
-                } else if (strcmp(buf, "diskwrite") == 0) {
-                    uint8_t sector[512];
-                    for (int i = 0; i < 512; i++)
-                        sector[i] = i & 0xFF;
-                    
-                    write(1, "Writing test data to sector 1...\n", 34);
-                    int result = disk_write(1, sector);
-                    if (result == 0) {
-                        write(1, "Write successful!\n", 18);
-                    } else {
-                        write(1, "Error writing disk\n", 19);
-                    }
-                    
-                } else if (strncmp(buf, "sleep ", 6) == 0) {
-                    int ms = atoi(buf + 6);
-                    sleep_sys(ms);
-                
+
+        char* p = buf;
+        char* cmd = next_token(&p);
+
+        /* ================= HELP ================= */
+        if (!strcmp(cmd, "help")) {
+            puts(
+                "Commands:\n"
+                " help\n"
+                " clear\n"
+                " cat <file>\n"
+                " write <file> <text>\n"
+                " append <file> <text>\n"
+                " rm <file>\n"
+                " mkdir <dir>\n"
+                " seektest <file>\n"
+                " diskread\n"
+                " diskwrite\n"
+                " sleep <ms>\n"
+            );
+        }
+
+        /* ================= CLEAR ================= */
+        else if (!strcmp(cmd, "clear")) {
+            clear();
+        }
+
+        /* ================= CAT ================= */
+        else if (!strcmp(cmd, "cat")) {
+            char* path = next_token(&p);
+            if (!path) {
+                puts("usage: cat <file>\n");
+            } else {
+                int fd = open(path, 0);
+                if (fd < 0) {
+                    puts("open failed\n");
                 } else {
-                    write(1, "Unknown command\n", 16);
+                    char fbuf[FILE_BUF];
+                    int n;
+                    while ((n = file_read(fd, fbuf, FILE_BUF)) > 0) {
+                        write(1, fbuf, n);
+                    }
+                    close(fd);
                 }
             }
-            
-            pos = 0;
-            write(1, "> ", 2);
-            
-        } else {
-            if (pos < BUF_SIZE - 1) {
-                buf[pos] = c;
-                pos++;
+        }
+
+        /* ================= WRITE ================= */
+        else if (!strcmp(cmd, "write")) {
+            char* path = next_token(&p);
+            char* text = next_token(&p);
+            if (!path || !text) {
+                puts("usage: write <file> <text>\n");
+            } else {
+                int fd = open(path, 1);
+                if (fd < 0) {
+                    puts("open failed\n");
+                } else {
+                    file_write(fd, text, strlen(text));
+                    file_write(fd, "\n", 1);
+                    close(fd);
+                    puts("ok\n");
+                }
             }
         }
+
+        /* ================= APPEND ================= */
+        else if (!strcmp(cmd, "append")) {
+            char* path = next_token(&p);
+            char* text = next_token(&p);
+            if (!path || !text) {
+                puts("usage: append <file> <text>\n");
+            } else {
+                int fd = open(path, 1);
+                if (fd < 0) {
+                    puts("open failed\n");
+                } else {
+                    seek(fd, 0, 2); // SEEK_END
+                    file_write(fd, text, strlen(text));
+                    file_write(fd, "\n", 1);
+                    close(fd);
+                    puts("ok\n");
+                }
+            }
+        }
+
+        /* ================= RM ================= */
+        else if (!strcmp(cmd, "rm")) {
+            char* path = next_token(&p);
+            if (!path) {
+                puts("usage: rm <file>\n");
+            } else {
+                if (unlink(path) == 0)
+                    puts("deleted\n");
+                else
+                    puts("unlink failed\n");
+            }
+        }
+
+        /* ================= MKDIR ================= */
+        else if (!strcmp(cmd, "mkdir")) {
+            char* path = next_token(&p);
+            if (!path) {
+                puts("usage: mkdir <dir>\n");
+            } else {
+                if (mkdir(path) == 0)
+                    puts("created\n");
+                else
+                    puts("mkdir failed\n");
+            }
+        }
+
+        /* ================= SEEK TEST ================= */
+        else if (!strcmp(cmd, "seektest")) {
+            char* path = next_token(&p);
+            if (!path) {
+                puts("usage: seektest <file>\n");
+            } else {
+                int fd = open(path, 0);
+                if (fd < 0) {
+                    puts("open failed\n");
+                } else {
+                    char x[8] = {0};
+                    seek(fd, 5, 0);
+                    file_read(fd, x, 5);
+                    puts("data@5: ");
+                    puts(x);
+                    puts("\n");
+                    close(fd);
+                }
+            }
+        }
+
+        /* ================= DISK ================= */
+        else if (!strcmp(cmd, "diskread")) {
+            uint8_t s[512];
+            if (disk_read(0, s) == 0)
+                puts("disk read ok\n");
+            else
+                puts("disk read error\n");
+        }
+
+        else if (!strcmp(cmd, "diskwrite")) {
+            uint8_t s[512];
+            for (int i = 0; i < 512; i++) s[i] = i;
+            if (disk_write(1, s) == 0)
+                puts("disk write ok\n");
+            else
+                puts("disk write error\n");
+        }
+
+        /* ================= SLEEP ================= */
+        else if (!strcmp(cmd, "sleep")) {
+            char* t = next_token(&p);
+            if (t)
+                sleep_sys(atoi(t));
+        }
+
+        else {
+            puts("unknown command\n");
+        }
+
+        prompt();
     }
 }

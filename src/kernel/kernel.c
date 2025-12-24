@@ -8,78 +8,73 @@
 #include "cpu/tss.h"
 #include "drivers/ata.h" 
 #include "drivers/timer.h"
+#include "fs/fat32.h"
 #include "lib/libc.h"
+
+static void boot_msg(const char *msg) {
+    term_puts("[boot] ");
+    term_puts(msg);
+}
+
+static void boot_ok(void) {
+    term_puts(" ... ok\n");
+}
+
+extern void fat32_test(void);
 
 void kernel_main(void) {
     term_init();
-    term_puts("Step 1: Terminal initialized\n");
+    term_puts("MyOS kernel 0.1\n");
+    term_puts("Initializing system\n\n");
     
-    term_puts("Step 2: Initializing GDT...\n");
+    boot_msg("gdt");
     gdt_init();
-    term_puts("GDT OK\n");
+    boot_ok();
     
-    term_puts("Step 3: Initializing TSS...\n");
+    boot_msg("tss");
     tss_init();
-    term_puts("TSS OK\n");
+    boot_ok();
     
-    term_puts("Step 4: Initializing PIC...\n");
+    boot_msg("pic");
     pic_remap();
-    term_puts("PIC OK\n");
+    boot_ok();
     
-    term_puts("Step 5: Initializing IDT...\n");
+    boot_msg("idt");
     idt_init();
-    term_puts("IDT OK\n");
+    boot_ok();
     
-    term_puts("Step 6: Initializing ATA...\n");
+    boot_msg("ata");
     ata_init();
-    term_puts("ATA init OK\n");
-    
     ata_identify();
-    term_puts("ATA identify OK\n");
+    boot_ok();
+
+	boot_msg("fat32");
+	fat32_init();
+	fat32_mount();
+	boot_ok();
     
-    term_puts("Step 7: Initializing Timer...\n");
+    boot_msg("timer");
     timer_init(100);
-    term_puts("Timer OK\n");
+    boot_ok();
     
-    term_puts("Step 8: Setting up syscall...\n");
+    boot_msg("syscall");
     extern void syscall_handler(void);
     idt_set_gate(0x80, (uint32_t)syscall_handler, 0x08, 0xEE);
-    term_puts("Syscall OK\n");
+    boot_ok();
     
-    term_puts("Step 9: Enabling interrupts...\n");
+    boot_msg("interrupts");
     asm volatile ("sti");
-    term_puts("Interrupts enabled\n");
+    boot_ok();
     
-    term_puts("Step 10: Testing timer...\n");
-    uint32_t test_start = get_tick_count();
-    char buf[16];
-    itoa(test_start, buf, 10);
-    term_puts("Start ticks: ");
-    term_puts(buf);
-    term_puts("\n");
     
-    for (volatile int i = 0; i < 50000000; i++);
     
-    uint32_t test_end = get_tick_count();
-    itoa(test_end, buf, 10);
-    term_puts("End ticks: ");
-    term_puts(buf);
-    term_puts("\n");
+    term_puts("\nSystem ready\n");
     
-    if (test_end > test_start) {
-        term_puts("Timer working!\n");
-    } else {
-        term_puts("Timer NOT working!\n");
-    }
     
-    term_puts("Step 11: Entering user mode...\n");
-    term_puts("If system reboots here, problem is in enter_user()\n");
-    
-    for (volatile int i = 0; i < 10000000; i++);
-    
+    term_puts("\n\nStarting init process\n\n");
     enter_user();
     
-    term_puts("ERROR: Returned from user mode!\n");
+    term_puts("panic: returned from user mode\n");
     while (1) {
         asm volatile ("hlt");
     }

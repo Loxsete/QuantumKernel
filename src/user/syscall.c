@@ -5,12 +5,33 @@
 #include "syscall/syscall.h"
 #include "syscall/syscall_raw.h"
 #include "drivers/ata.h"
+#include "fs/fat32.h"
 
 typedef struct regs {
     uint32_t edi, esi, ebp, esp;
     uint32_t ebx, edx, ecx, eax;
     uint32_t gs, fs, es, ds;
 } regs_t;
+
+#define MAX_FILES 16
+static fat32_file_t file_table[MAX_FILES];
+static int file_used[MAX_FILES] = {0};
+
+static int alloc_fd(void) {
+    for (int i = 0; i < MAX_FILES; i++) {
+        if (!file_used[i]) {
+            file_used[i] = 1;
+            return i;
+        }
+    }
+    return -1;
+}
+
+static void free_fd(int fd) {
+    if (fd >= 0 && fd < MAX_FILES) {
+        file_used[fd] = 0;
+    }
+}
 
 void syscall_dispatch(regs_t* r) {
     switch (r->eax) {
@@ -83,12 +104,108 @@ void syscall_dispatch(regs_t* r) {
             break;
         }
         
+        // FAT32 syscalls
+        case SYS_OPEN: {
+            const char* path = (const char*)r->ebx;
+            int flags = r->ecx;
+            
+            int fd = alloc_fd();
+            if (fd < 0) {
+                r->eax = -1;
+                break;
+            }
+            
+            int result = fat32_open(&file_table[fd], path, (uint8_t)flags);
+            if (result != 0) {
+                free_fd(fd);
+                r->eax = -1;
+            } else {
+                r->eax = fd;
+            }
+            break;
+        }
+        
+        case SYS_CLOSE: {
+            int fd = r->ebx;
+            
+            if (fd < 0 || fd >= MAX_FILES || !file_used[fd]) {
+                r->eax = -1;
+                break;
+            }
+            
+            int result = fat32_close(&file_table[fd]);
+            free_fd(fd);
+            r->eax = result;
+            break;
+        }
+        
+        case SYS_FILE_READ: {
+            int fd = r->ebx;
+            void* buffer = (void*)r->ecx;
+            uint32_t size = r->edx;
+            
+            if (fd < 0 || fd >= MAX_FILES || !file_used[fd]) {
+                r->eax = -1;
+                break;
+            }
+            
+            int result = fat32_read(&file_table[fd], buffer, size);
+            r->eax = result;
+            break;
+        }
+        
+        case SYS_FILE_WRITE: {
+            int fd = r->ebx;
+            const void* buffer = (const void*)r->ecx;
+            uint32_t size = r->edx;
+            
+            if (fd < 0 || fd >= MAX_FILES || !file_used[fd]) {
+                r->eax = -1;
+                break;
+            }
+            
+            int result = fat32_write(&file_table[fd], buffer, size);
+            r->eax = result;
+            break;
+        }
+        
+        case SYS_SEEK: {
+            int fd = r->ebx;
+            int offset = r->ecx;
+            int whence = r->edx;
+            
+            if (fd < 0 || fd >= MAX_FILES || !file_used[fd]) {
+                r->eax = -1;
+                break;
+            }
+            
+            int result = fat32_seek(&file_table[fd], offset, (uint8_t)whence);
+            r->eax = result;
+            break;
+        }
+        
+        case SYS_UNLINK: {
+            const char* path = (const char*)r->ebx;
+            int result = fat32_unlink(path);
+            r->eax = result;
+            break;
+        }
+        
+        case SYS_MKDIR: {
+            const char* path = (const char*)r->ebx;
+            int result = fat32_mkdir(path);
+            r->eax = result;
+            break;
+        }
+        
+        
         default:
             term_puts("[unknown syscall]\n");
             r->eax = -1;
             break;
     }
 }
+
 
 __attribute__((used))
 int write(int fd, const char* buf, uint32_t len) {
@@ -126,3 +243,41 @@ __attribute__((used))
 void sleep_sys(uint32_t ms) {
     syscall_invoke(SYS_SLEEP, ms, 0, 0);
 }
+
+// FAT32 wrappers
+__attribute__((used))
+int open(const char* path, int flags) {
+    return syscall_invoke(SYS_OPEN, (int)path, flags, 0);
+}
+
+__attribute__((used))
+int close(int fd) {
+    return syscall_invoke(SYS_CLOSE, fd, 0, 0);
+}
+
+__attribute__((used))
+int file_read(int fd, void* buffer, uint32_t size) {
+    return syscall_invoke(SYS_FILE_READ, fd, (int)buffer, size);
+}
+
+__attribute__((used))
+int file_write(int fd, const void* buffer, uint32_t size) {
+    return syscall_invoke(SYS_FILE_WRITE, fd, (int)buffer, size);
+}
+
+__attribute__((used))
+int seek(int fd, int offset, int whence) {
+    return syscall_invoke(SYS_SEEK, fd, offset, whence);
+}
+
+__attribute__((used))
+int unlink(const char* path) {
+    return syscall_invoke(SYS_UNLINK, (int)path, 0, 0);
+}
+
+__attribute__((used))
+int mkdir(const char* path) {
+    return syscall_invoke(SYS_MKDIR, (int)path, 0, 0);
+}
+
+

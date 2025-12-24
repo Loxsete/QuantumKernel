@@ -1,0 +1,4 @@
+#!/bin/sh
+echo Hello from FAT32
+echo Kernel test file
+

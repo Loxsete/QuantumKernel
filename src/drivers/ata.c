@@ -30,11 +30,11 @@ static int ata_wait_drq(void) {
 void ata_init(void) {
     term_puts("Initializing ATA driver...\n");
     
-    // Select master drive
+    
     outb(ATA_PRIMARY_DRIVE, 0xA0);
     ata_wait_busy();
     
-    // Disable interrupts for ATA
+    
     outb(0x3F6, 0x02);
     
     term_puts("ATA driver initialized\n");
@@ -43,11 +43,11 @@ void ata_init(void) {
 void ata_identify(void) {
     term_puts("Identifying ATA drive...\n");
     
-    // Select master drive
+    
     outb(ATA_PRIMARY_DRIVE, 0xA0);
     ata_wait_busy();
     
-    // Send IDENTIFY command
+    
     outb(ATA_PRIMARY_COMMAND, ATA_CMD_IDENTIFY);
     ata_wait_busy();
     
@@ -69,7 +69,7 @@ void ata_identify(void) {
     
     term_puts("ATA drive detected\n");
     
-    // Print model string (words 27-46)
+    
     term_puts("Model: ");
     for (int i = 27; i < 47; i++) {
         char c1 = (identify[i] >> 8) & 0xFF;
@@ -85,24 +85,24 @@ int ata_read_sector(uint32_t lba, uint8_t* buffer) {
     
     ata_wait_busy();
     
-    // Select master drive + LBA mode
+    
     outb(ATA_PRIMARY_DRIVE, 0xE0 | ((lba >> 24) & 0x0F));
     ata_wait_busy();
     
-    // Send sector count (1 sector)
+    
     outb(ATA_PRIMARY_SECCOUNT, 1);
     
-    // Send LBA
+    
     outb(ATA_PRIMARY_LBA_LO,  lba & 0xFF);
     outb(ATA_PRIMARY_LBA_MID, (lba >> 8) & 0xFF);
     outb(ATA_PRIMARY_LBA_HI,  (lba >> 16) & 0xFF);
     
-    // Send READ command
+    
     outb(ATA_PRIMARY_COMMAND, ATA_CMD_READ_PIO);
     
     ata_wait_busy();
     
-    // Check for errors
+    
     uint8_t status = inb(ATA_PRIMARY_STATUS);
     if (status & ATA_SR_ERR) {
         term_puts("[ATA] Read error\n");
@@ -114,7 +114,7 @@ int ata_read_sector(uint32_t lba, uint8_t* buffer) {
         return -1;
     }
     
-    // Read 512 bytes (256 words)
+    
     uint16_t* buf16 = (uint16_t*)buffer;
     for (int i = 0; i < 256; i++) {
         buf16[i] = inw(ATA_PRIMARY_DATA);
@@ -128,19 +128,19 @@ int ata_write_sector(uint32_t lba, const uint8_t* buffer) {
     
     ata_wait_busy();
     
-    // Select master drive + LBA mode
+    
     outb(ATA_PRIMARY_DRIVE, 0xE0 | ((lba >> 24) & 0x0F));
     ata_wait_busy();
     
-    // Send sector count (1 sector)
+    
     outb(ATA_PRIMARY_SECCOUNT, 1);
     
-    // Send LBA
+    
     outb(ATA_PRIMARY_LBA_LO,  lba & 0xFF);
     outb(ATA_PRIMARY_LBA_MID, (lba >> 8) & 0xFF);
     outb(ATA_PRIMARY_LBA_HI,  (lba >> 16) & 0xFF);
     
-    // Send WRITE command
+    
     outb(ATA_PRIMARY_COMMAND, ATA_CMD_WRITE_PIO);
     
     ata_wait_busy();
@@ -150,13 +150,13 @@ int ata_write_sector(uint32_t lba, const uint8_t* buffer) {
         return -1;
     }
     
-    // Write 512 bytes (256 words)
+    
     const uint16_t* buf16 = (const uint16_t*)buffer;
     for (int i = 0; i < 256; i++) {
         outw(ATA_PRIMARY_DATA, buf16[i]);
     }
     
-    // Flush cache
+    
     outb(ATA_PRIMARY_COMMAND, 0xE7);
     ata_wait_busy();
     
