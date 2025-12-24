@@ -13,7 +13,7 @@ CFLAGS="-ffreestanding -nostdlib -fno-builtin -fno-stack-protector -Wall -Wextra
 ASFLAGS="-f elf32"
 LDFLAGS="-m elf_i386"
 
-SRC_DIRS="src/kernel src/cpu src/drivers src/mm src/user src/syscall src/lib"
+SRC_DIRS="src/kernel src/cpu src/drivers src/mm src/user src/syscall src/lib src/fs"
 
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
