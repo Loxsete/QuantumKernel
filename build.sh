@@ -2,6 +2,7 @@
 set -e
 
 BUILD_DIR=build
+DISK_IMG="$BUILD_DIR/disk.img"
 ARCH=i386
 
 CC=gcc
@@ -22,7 +23,6 @@ for file in src/*.asm; do
     $AS $ASFLAGS "$file" -o "$obj"
 done
 
-
 echo "[*] Compiling C files"
 for file in src/*.c; do
     obj="$BUILD_DIR/$(basename "$file" .c).o"
@@ -35,8 +35,17 @@ $LD $LDFLAGS -T src/link.ld \
     "$BUILD_DIR"/*.o \
     -o "$BUILD_DIR/kernel.bin"
 
+echo "[*] Creating disk image"
+if [ ! -f "$DISK_IMG" ]; then
+    echo "    Creating new 16MB disk: $DISK_IMG"
+    dd if=/dev/zero of="$DISK_IMG" bs=1M count=16 2>/dev/null
+else
+    echo "    Using existing disk: $DISK_IMG"
+fi
 
 echo "[*] Done!"
-echo "[*] Running QEMU"
-
-qemu-system-x86_64 -kernel "$BUILD_DIR/kernel.bin"
+echo "[*] Running QEMU with disk"
+qemu-system-x86_64 \
+    -kernel "$BUILD_DIR/kernel.bin" \
+    -hda "$DISK_IMG" \
+    -m 128M

@@ -12,7 +12,6 @@ static int cursor_x = 0;
 static int cursor_y = 0;
 
 #define LINE_BUF_SIZE 256
-static char line_buffer[LINE_BUF_SIZE];
 static int line_pos = 0;
 
 void idt_set_gate(uint8_t num, uint32_t handler, uint16_t sel, uint8_t flags);
@@ -62,46 +61,6 @@ void term_clear(void) {
 
 void term_init(void) {
     term_clear();
-    term_puts("Simple OS Terminal v0.1\n");
-    term_puts("> ");
     line_pos = 0;
 }
 
-void term_process_char(char c) {
-    if (c == 0) return;
-
-    if (c == '\n' || c == '\r') {
-        term_putc('\n');
-        line_buffer[line_pos] = '\0';
-
-        if (line_pos > 0) {
-            if (strcmp(line_buffer, "clear") == 0) {
-                term_clear();
-                term_puts("> ");
-            } else if (strcmp(line_buffer, "help") == 0) {
-                term_puts("Available commands:\n");
-                term_puts(" help - show this help\n");
-                term_puts(" clear - clear screen\n");
-                term_puts(" syscall - test syscall\n");
-                term_puts("> ");
-            
-             
-            } else {
-                term_puts("Unknown command: ");
-                term_puts(line_buffer);
-                term_puts("\n> ");
-            }
-        } else {
-            term_puts("> ");
-        }
-        line_pos = 0;
-    } else if (c == '\b' || c == 127) {
-        if (line_pos > 0) {
-            line_pos--;
-            term_putc('\b');
-        }
-    } else if (c >= 32 && c <= 126 && line_pos < LINE_BUF_SIZE - 1) {
-        line_buffer[line_pos++] = c;
-        term_putc(c);
-    }
-}
