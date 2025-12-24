@@ -87,8 +87,6 @@ void user_main(void) {
                 " rm <file>\n"
                 " mkdir <dir>\n"
                 " seektest <file>\n"
-                " diskread\n"
-                " diskwrite\n"
                 " sleep <ms>\n"
             );
         }
@@ -204,23 +202,6 @@ void user_main(void) {
             }
         }
 
-        /* ================= DISK ================= */
-        else if (!strcmp(cmd, "diskread")) {
-            uint8_t s[512];
-            if (disk_read(0, s) == 0)
-                puts("disk read ok\n");
-            else
-                puts("disk read error\n");
-        }
-
-        else if (!strcmp(cmd, "diskwrite")) {
-            uint8_t s[512];
-            for (int i = 0; i < 512; i++) s[i] = i;
-            if (disk_write(1, s) == 0)
-                puts("disk write ok\n");
-            else
-                puts("disk write error\n");
-        }
 
         /* ================= SLEEP ================= */
         else if (!strcmp(cmd, "sleep")) {
