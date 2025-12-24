@@ -10,7 +10,8 @@ A minimal 32-bit operating system kernel with basic system call support and an i
 - System call interface (int 0x80)
 
 
-<img width="826" height="254" alt="image" src="https://github.com/user-attachments/assets/03be60f8-d6f5-428a-90e0-a0ac88252b0a" />
+<img width="900" height="1027" alt="cakkk" src="https://github.com/user-attachments/assets/06e94d9c-cb58-41e0-a41e-1da4720738a5" />
+
 
 ## Prerequisites
 
@@ -71,14 +72,8 @@ qemu-system-x86_64 -kernel build/kernel.bin
 To run on real virtualization software, you'll need to create a bootable ISO. This requires GRUB:
 
 ```bash
-mkdir -p isodir/boot/grub
-cp build/kernel.bin isodir/boot/
-cat > isodir/boot/grub/grub.cfg << EOF
-menuentry "MyOS" {
-    multiboot /boot/kernel.bin
-}
-EOF
-grub-mkrescue -o myos.iso isodir
+chmod +x iso.sh
+./iso.sh
 ```
 
 Then boot `myos.iso` in your VM software.
@@ -93,6 +88,11 @@ The kernel supports the following system calls (invoked via `int 0x80`):
 |--------|-----------|--------------------------------|
 | 1      | exit      | Terminate process              |
 | 2      | write     | Write to file descriptor       |
+| 3      | exit      | Terminates the current process |
+| 4      | clear     | Clears screen                  |
+| 5      | disk_read | Read disk sector               |
+| 6      | disk_write| Write disk sector              |
+| 7      | sleep     | Wait milliseconds              |
 
 
 System calls follow the standard i386 convention:
