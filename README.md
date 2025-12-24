@@ -9,8 +9,10 @@ A minimal 32-bit operating system kernel with basic system call support and an i
 - VGA text mode terminal
 - System call interface (int 0x80)
 
+  
+<img width="646" height="546" alt="screen" src="https://github.com/user-attachments/assets/09604d76-3469-4f5a-a380-b64e99d7a12b" />
 
-<img width="900" height="1027" alt="cakkk" src="https://github.com/user-attachments/assets/06e94d9c-cb58-41e0-a41e-1da4720738a5" />
+
 
 
 ## Prerequisites
