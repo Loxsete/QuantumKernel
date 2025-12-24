@@ -10,7 +10,8 @@ A minimal 32-bit operating system kernel with basic system call support and an i
 - System call interface (int 0x80)
 
 
-<img width="826" height="254" alt="image" src="https://github.com/user-attachments/assets/03be60f8-d6f5-428a-90e0-a0ac88252b0a" />
+<img width="900" height="1027" alt="cakkk" src="https://github.com/user-attachments/assets/06e94d9c-cb58-41e0-a41e-1da4720738a5" />
+
 
 ## Prerequisites
 
@@ -93,6 +94,11 @@ The kernel supports the following system calls (invoked via `int 0x80`):
 |--------|-----------|--------------------------------|
 | 1      | exit      | Terminate process              |
 | 2      | write     | Write to file descriptor       |
+| 3      | exit      | Terminates the current process |
+| 4      | clear     | Clears screen                  |
+| 5      | disk_read | Read disk sector               |
+| 6      | disk_write| Write disk sector              |
+| 7      | sleep     | Wait milliseconds              |
 
 
 System calls follow the standard i386 convention:
