@@ -202,6 +202,62 @@ void user_main(void) {
             }
         }
 
+        /* ================= LS ================= */
+        else if (!strcmp(cmd, "ls")) {
+            char* path = next_token(&p);
+            
+            // Структура для информации о файле
+            typedef struct {
+                char name[32];
+                uint32_t size;
+                uint8_t attr;
+                uint32_t first_cluster;
+            } file_info_t;
+            
+            file_info_t info;
+            uint32_t cluster;
+            
+            if (!path || !strcmp(path, "/") || !strcmp(path, ".")) {
+                
+                cluster = 2; 
+            } else {
+                
+                cluster = 2;
+            }
+            
+            puts("Directory listing:\n");
+            
+            uint32_t index = 0;
+            int count = 0;
+            
+            while (readdir_sys(cluster, &index, &info) == 0) {
+                if (info.attr & 0x10) {  // FAT32_ATTR_DIRECTORY
+                    puts("<DIR> ");
+                } else {
+                    puts("      ");
+                }
+                
+                puts(info.name);
+                
+                puts(" (");
+                char size_buf[16];
+                itoa(info.size, size_buf, 10);
+                puts(size_buf);
+                puts(" bytes)\n");
+                
+                count++;
+                
+                if (count > 100) {
+                    puts("...(too many entries)\n");
+                    break;
+                }
+            }
+            
+            if (count == 0) {
+                puts("(empty directory)\n");
+            }
+        }
+
 
         /* ================= SLEEP ================= */
         else if (!strcmp(cmd, "sleep")) {

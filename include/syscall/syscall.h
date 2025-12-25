@@ -18,13 +18,14 @@
 #define SYS_SEEK       12
 #define SYS_UNLINK     13
 #define SYS_MKDIR      14
-
+#define SYS_READDIR    15  // Новый системный вызов
 
 // Basic I/O
 int write(int fd, const char* buf, uint32_t len);
 int read(int fd, char* buf, uint32_t len);
 void exit(void);
 void clear(void);
+
 int disk_read(uint32_t lba, void* buffer);
 int disk_write(uint32_t lba, const void* buffer);
 void sleep_sys(uint32_t ms);
@@ -36,5 +37,6 @@ int file_write(int fd, const void* buffer, uint32_t size);
 int seek(int fd, int offset, int whence);
 int unlink(const char* path);
 int mkdir(const char* path);
+int readdir_sys(uint32_t cluster, uint32_t* index, void* info);  // Новая функция
 
 #endif

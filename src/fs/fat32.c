@@ -776,3 +776,7 @@ void fat32_print_info(void) {
     term_puts(buf);
     term_puts("\n\n");
 }
+
+uint32_t fat32_get_root_cluster(void) {
+    return g_fs.root_dir_first_cluster;
+}

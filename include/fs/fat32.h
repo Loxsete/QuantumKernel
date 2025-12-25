@@ -172,5 +172,6 @@ int fat32_stat(const char* path, fat32_file_info_t* info);
 // Utility Functions
 void fat32_list_dir(const char* path);
 void fat32_print_info(void);
+uint32_t fat32_get_root_cluster(void); 
 
 #endif

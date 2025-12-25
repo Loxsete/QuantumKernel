@@ -197,6 +197,21 @@ void syscall_dispatch(regs_t* r) {
             r->eax = result;
             break;
         }
+
+        case SYS_READDIR: {
+            uint32_t cluster = r->ebx;
+            uint32_t* index = (uint32_t*)r->ecx;
+            fat32_file_info_t* info = (fat32_file_info_t*)r->edx;
+            
+            if (!index || !info) {
+                r->eax = -1;
+                break;
+            }
+            
+            int result = fat32_readdir(cluster, index, info);
+            r->eax = result;
+            break;
+        }
         
         
         default:
@@ -281,3 +296,7 @@ int mkdir(const char* path) {
 }
 
 
+__attribute__((used))
+int readdir_sys(uint32_t cluster, uint32_t* index, void* info) {
+    return syscall_invoke(SYS_READDIR, cluster, (int)index, (int)info);
+}
