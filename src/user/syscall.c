@@ -6,6 +6,7 @@
 #include "syscall/syscall_raw.h"
 #include "drivers/ata.h"
 #include "fs/fat32.h"
+#include "drivers/rtc.h"
 
 typedef struct regs {
     uint32_t edi, esi, ebp, esp;
@@ -212,7 +213,25 @@ void syscall_dispatch(regs_t* r) {
             r->eax = result;
             break;
         }
+
+        // TIME
+
         
+        case SYS_RTC_TIME: {
+            rtc_time_t* out = (rtc_time_t*)r->ebx;
+           	if (out)
+                rtc_time_sys(out);
+                r->eax = 0;
+            break;
+            }
+        
+        case SYS_TIMEZONE: {
+            int* out = (int*)r->ebx;
+            if (out)
+            *out = timezone_sys();  // используем функцию вместо прямого доступа
+            r->eax = 0;
+            break;
+            }
         
         default:
             term_puts("[unknown syscall]\n");
@@ -300,3 +319,12 @@ __attribute__((used))
 int readdir_sys(uint32_t cluster, uint32_t* index, void* info) {
     return syscall_invoke(SYS_READDIR, cluster, (int)index, (int)info);
 }
+
+
+__attribute__((used))
+void rtc_time_sys(rtc_time_t* out);
+
+__attribute__((used))
+int timezone_sys(void);
+
+

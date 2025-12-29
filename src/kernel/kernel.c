@@ -10,6 +10,7 @@
 #include "drivers/timer.h"
 #include "fs/fat32.h"
 #include "lib/libc.h"
+#include "drivers/rtc.h"
 
 static void boot_msg(const char *msg) {
     term_puts("[boot] ");
@@ -24,8 +25,7 @@ extern void fat32_test(void);
 
 void kernel_main(void) {
     term_init();
-    term_puts("MyOS kernel 0.1\n");
-    term_puts("Initializing system\n\n");
+    
     
     boot_msg("gdt");
     gdt_init();
@@ -52,6 +52,21 @@ void kernel_main(void) {
 	fat32_init();
 	fat32_mount();
 	boot_ok();
+
+	boot_msg("timezone");
+	load_timezone();
+	boot_ok();
+	
+	rtc_time_t t = rtc_get_local_time();
+	term_puts("Current local time: ");
+	char buf[32];
+	itoa(t.hour, buf, 10);
+	term_puts(buf);
+	term_puts(":");
+	itoa(t.min, buf, 10);
+	term_puts(buf);
+	term_puts("\n");
+	
     
     boot_msg("timer");
     timer_init(100);

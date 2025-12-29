@@ -1,6 +1,7 @@
 #include "syscall/syscall.h"
 #include "lib/libc.h"
 #include "lib/string.h"
+#include "lib/rtc.h"   
 #include <stdint.h>
 
 #define BUF_SIZE 256
@@ -37,9 +38,14 @@ static char* next_token(char** s) {
 void user_main(void) {
     char buf[BUF_SIZE];
 
-    puts("FAT32 test shell ready\n");
-    prompt();
+    puts(
+        "\n"
+        "Welcome to Quantum Kernel shell\n"
+        "Type 'help' for available commands.\n"
+    );
 
+    prompt();
+    
     while (1) {
         int pos = 0;
         char c;
@@ -206,7 +212,6 @@ void user_main(void) {
         else if (!strcmp(cmd, "ls")) {
             char* path = next_token(&p);
             
-            // Структура для информации о файле
             typedef struct {
                 char name[32];
                 uint32_t size;
@@ -264,6 +269,27 @@ void user_main(void) {
             char* t = next_token(&p);
             if (t)
                 sleep_sys(atoi(t));
+        }
+
+        else if (!strcmp(cmd, "time")) {
+            rtc_time_t t;
+            rtc_time_sys(&t);  
+            int tz = timezone_sys();
+        
+            char buf[64];
+            itoa(t.hour, buf, 10);
+            puts(buf);
+            puts(":");
+            itoa(t.min, buf, 10);
+            puts(buf);
+            puts(":");
+            itoa(t.sec, buf, 10);
+            puts(buf);
+        
+            puts(" UTC");
+            itoa(tz, buf, 10);
+            puts(buf);
+            puts("\n");
         }
 
         else {

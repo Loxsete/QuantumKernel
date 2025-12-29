@@ -76,6 +76,11 @@ echo Kernel test file
 
 mcopy -i "$DISK_IMG" "$BUILD_DIR/text.txt" ::text.txt
 
+echo "${BLUE}[*] Writing tz.txt to disk image${NC}"
+echo "UTC+3" > "$BUILD_DIR/tz.txt"
+mcopy -i "$DISK_IMG" "$BUILD_DIR/tz.txt" ::tz.txt
+
+
 
 echo "${GREEN}[✓] Build complete!${NC}"
 echo ""
@@ -89,3 +94,4 @@ qemu-system-x86_64 \
     -m 128M \
     -no-reboot \
     -no-shutdown
+	-rtc base=localtime,clock=host
