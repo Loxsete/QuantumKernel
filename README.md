@@ -86,20 +86,29 @@ Then boot `myos.iso` in your VM software.
 
 The kernel supports the following system calls (invoked via `int 0x80`):
 
-| Number | Name      | Description                    |
-|--------|-----------|--------------------------------|
-| 1      | exit      | Terminate process              |
-| 2      | write     | Write to file descriptor       |
-| 3      | exit      | Terminates the current process |
-| 4      | clear     | Clears screen                  |
-| 5      | disk_read | Read disk sector               |
-| 6      | disk_write| Write disk sector              |
-| 7      | sleep     | Wait milliseconds              |
+| Number | Name            | Description                                      | Arguments                              | Return value |
+|--------|-----------------|--------------------------------------------------|----------------------------------------|--------------|
+| 1      | `write`         | Write data to file descriptor (stdout only)      | `fd`, `buf`, `len`                     | bytes written |
+| 2      | `read`          | Read data from file descriptor (stdin only)      | `fd`, `buf`, `len`                     | bytes read   |
+| 3      | `exit`          | Terminate the current process                    | —                                      | —            |
+| 4      | `clear`         | Clear the screen                                 | —                                      | —            |
+| 5      | `disk_read`     | Read raw sector from disk                        | `lba`, `buffer`                        | 0 on success |
+| 6      | `disk_write`    | Write raw sector to disk                         | `lba`, `buffer`                        | 0 on success |
+| 7      | `sleep`         | Sleep for specified milliseconds                 | `ms`                                   | —            |
+| 8      | `open`          | Open file on FAT32 filesystem                    | `path`, `flags`                        | file descriptor (>=0) or -1 |
+| 9      | `close`         | Close file descriptor                            | `fd`                                   | 0 on success |
+| 10     | `file_read`     | Read from opened file                            | `fd`, `buffer`, `size`                 | bytes read   |
+| 11     | `file_write`    | Write to opened file                             | `fd`, `buffer`, `size`                 | bytes written|
+| 12     | `seek`          | Change file position                             | `fd`, `offset`, `whence`               | 0 on success |
+| 13     | `unlink`        | Delete file                                      | `path`                                 | 0 on success |
+| 14     | `mkdir`         | Create directory                                 | `path`                                 | 0 on success |
+| 15     | `readdir`       | Read next directory entry from root/cluster      | `cluster`, `index` (in/out), `info`    | 0 on success |
+| 16     | `rtc_time`      | Get current local time from RTC                  | `rtc_time_t* out`                      | —            |
+| 17     | `timezone`      | Get current timezone offset (hours from UTC)      | —                                      | offset       |
 
-
-System calls follow the standard i386 convention:
-- `eax` = syscall number
-- `ebx`, `ecx`, `edx` = arguments
+System calls follow the standard i386 calling convention:
+- Syscall number in `eax`
+- Arguments in `ebx`, `ecx`, `edx` (up to 3)
 - Return value in `eax`
 
 ## Debugging
