@@ -69,18 +69,6 @@ The build script runs QEMU automatically after compilation. You can also run it 
 qemu-system-x86_64 -kernel build/kernel.bin
 ```
 
-### With VirtualBox or VMware
-
-To run on real virtualization software, you'll need to create a bootable ISO. This requires GRUB:
-
-```bash
-chmod +x iso.sh
-./iso.sh
-```
-
-Then boot `myos.iso` in your VM software.
-
-
 
 ## System Calls
 
