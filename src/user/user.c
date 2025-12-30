@@ -122,61 +122,53 @@ void user_main(void) {
             }
         }
 
-		else if (!strcmp(cmd, "write")) {
-		    char* path = next_token(&p);
-		    char* text = next_token(&p);
-		    if (!path || !text) {
-		        puts("usage: write <file> <text>\n");
-		    } else {
-		        int fd = open(path, 6); 
-		        if (fd < 0) {
-		            puts("open failed\n");
-		        } else {
-		            file_write(fd, text, strlen(text));
-		            file_write(fd, "\n", 1);
-		            close(fd);
-		            puts("ok\n");
-		        }
-		    }
-		}
 		
-		else if (!strcmp(cmd, "append")) {
-		    char* path = next_token(&p);
-		    char* text = next_token(&p);
-		    if (!path || !text) {
-		        puts("usage: append <file> <text>\n");
-		    } else {
-		        int fd = open(path, 22);  
-		        if (fd < 0) {
-		            puts("open failed\n");
-		        } else {
-		            seek(fd, 0, 2);
-		            file_write(fd, text, strlen(text));
-		            file_write(fd, "\n", 1);
-		            close(fd);
-		            puts("ok\n");
-		        }
-		    }
-		}
-        
-        else if (!strcmp(cmd, "append")) {
-            char* path = next_token(&p);
-            char* text = next_token(&p);
-            if (!path || !text) {
-                puts("usage: append <file> <text>\n");
-            } else {
-                int fd = open(path, 1);
-                if (fd < 0) {
-                    puts("open failed\n");
-                } else {
-                    seek(fd, 0, 2); // SEEK_END
-                    file_write(fd, text, strlen(text));
-                    file_write(fd, "\n", 1);
-                    close(fd);
-                    puts("ok\n");
-                }
-            }
-        }
+      	else if (!strcmp(cmd, "write")) {
+      	    char* path = next_token(&p);
+      	    if (!path) {
+      	        puts("usage: write <file> <text>\n");
+      	    } else {
+      	        while (*p == ' ') p++;
+      	        
+      	        if (*p == 0) {
+      	            puts("usage: write <file> <text>\n");
+      	        } else {
+      	            int fd = open(path, 6);
+      	            if (fd < 0) {
+      	                puts("open failed\n");
+      	            } else {
+      	                file_write(fd, p, strlen(p));  
+      	                file_write(fd, "\n", 1);
+      	                close(fd);
+      	                puts("ok\n");
+      	            }
+      	        }
+      	    }
+      	}
+      	
+      	else if (!strcmp(cmd, "append")) {
+      	    char* path = next_token(&p);
+      	    if (!path) {
+      	        puts("usage: append <file> <text>\n");
+      	    } else {
+      	        while (*p == ' ') p++;
+      	        
+      	        if (*p == 0) {
+      	            puts("usage: append <file> <text>\n");
+      	        } else {
+      	            int fd = open(path, 22);
+      	            if (fd < 0) {
+      	                puts("open failed\n");
+      	            } else {
+      	                seek(fd, 0, 2);
+      	                file_write(fd, p, strlen(p));  
+      	                file_write(fd, "\n", 1);
+      	                close(fd);
+      	                puts("ok\n");
+      	            }
+      	        }
+      	    }
+      	}
 
         /* ================= RM ================= */
         else if (!strcmp(cmd, "rm")) {
