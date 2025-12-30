@@ -13,7 +13,7 @@ CFLAGS="-ffreestanding -nostdlib -fno-builtin -fno-stack-protector -Wall -Wextra
 ASFLAGS="-f elf32"
 LDFLAGS="-m elf_i386"
 
-SRC_DIRS="src/kernel src/cpu src/drivers src/mm src/user src/syscall src/lib src/fs src/errors"
+SRC_DIRS="src/kernel src/cpu src/drivers src/mm src/user src/syscall src/lib src/fs src/errors src/drivers/pci src/drivers/rtl8139"
 
 GREEN='\033[0;32m'
 BLUE='\033[0;34m'
@@ -92,6 +92,8 @@ qemu-system-x86_64 \
     -kernel "$BUILD_DIR/kernel.bin" \
     -hda "$DISK_IMG" \
     -m 128M \
+    -net nic,model=rtl8139 \
+    -net user \
     -no-reboot \
-    -no-shutdown
-	-rtc base=localtime,clock=host
+    -no-shutdown \
+    -rtc base=localtime,clock=host
