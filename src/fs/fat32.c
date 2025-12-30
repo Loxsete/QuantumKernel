@@ -416,7 +416,7 @@ int fat32_open(fat32_file_t* file, const char* path, uint8_t flags) {
     memset(file, 0, sizeof(fat32_file_t));
     
     fat32_dirent_t entry;
-    uint32_t dir_cluster = g_fs.root_dir_first_cluster;
+    uint32_t dir_cluster = g_current_dir_cluster;
     
     if (fat32_find_entry(dir_cluster, path, &entry, 
                         &file->dir_cluster, &file->dir_entry_offset) == 0) {
@@ -443,6 +443,12 @@ int fat32_open(fat32_file_t* file, const char* path, uint8_t flags) {
             return -1;
         
         if (fat32_create_entry(dir_cluster, path, FAT32_ATTR_ARCHIVE, new_cluster) != 0) {
+            fat32_free_cluster_chain(new_cluster);
+            return -1;
+        }
+        
+        if (fat32_find_entry(dir_cluster, path, &entry,
+                            &file->dir_cluster, &file->dir_entry_offset) != 0) {
             fat32_free_cluster_chain(new_cluster);
             return -1;
         }
@@ -629,7 +635,7 @@ int fat32_mkdir(const char* path) {
     if (new_cluster == 0)
         return -1;
     
-    if (fat32_create_entry(g_fs.root_dir_first_cluster, path, 
+    if (fat32_create_entry(g_current_dir_cluster, path,  
                           FAT32_ATTR_DIRECTORY, new_cluster) != 0) {
         fat32_free_cluster_chain(new_cluster);
         return -1;
@@ -646,7 +652,7 @@ int fat32_unlink(const char* path) {
     fat32_dirent_t entry;
     uint32_t cluster, offset;
     
-    if (fat32_find_entry(g_fs.root_dir_first_cluster, path, &entry, &cluster, &offset) != 0)
+	if (fat32_find_entry(g_current_dir_cluster, path, &entry, &cluster, &offset) != 0)  
         return -1;
     
     uint32_t first_cluster = ((uint32_t)entry.first_cluster_high << 16) | 
@@ -663,7 +669,6 @@ int fat32_unlink(const char* path) {
     
     return fat32_write_cluster(cluster, cluster_buffer);
 }
-
 
 int fat32_readdir(uint32_t cluster, uint32_t* index, fat32_file_info_t* info) {
     if (!info || !index)
@@ -690,16 +695,18 @@ int fat32_readdir(uint32_t cluster, uint32_t* index, fat32_file_info_t* info) {
             if (entries[i].name[0] == 0xE5 || entries[i].attr == FAT32_ATTR_LFN)
                 continue;
             
+            memset(info->name, 0, sizeof(info->name));
+            
+            int name_len = 0;
             for (int j = 0; j < 8 && entries[i].name[j] != ' '; j++)
-                info->name[j] = entries[i].name[j];
+                info->name[name_len++] = entries[i].name[j];
             
             if (entries[i].name[8] != ' ') {
-                int len = strlen(info->name);
-                info->name[len++] = '.';
+                info->name[name_len++] = '.';
                 for (int j = 8; j < 11 && entries[i].name[j] != ' '; j++)
-                    info->name[len++] = entries[i].name[j];
-                info->name[len] = '\0';
+                    info->name[name_len++] = entries[i].name[j];
             }
+            info->name[name_len] = '\0';  
             
             info->size = entries[i].file_size;
             info->attr = entries[i].attr;
@@ -716,7 +723,6 @@ int fat32_readdir(uint32_t cluster, uint32_t* index, fat32_file_info_t* info) {
     
     return -1;
 }
-
 
 void fat32_list_dir(const char* path) {
     term_puts("Directory listing: ");
@@ -735,11 +741,7 @@ void fat32_list_dir(const char* path) {
         }
         
         term_puts(info.name);
-        term_puts(" (");
-        char size_str[16];
-        itoa(info.size, size_str, 10);
-        term_puts(size_str);
-        term_puts(" bytes)\n");
+        term_puts("\n");
     }
 }
 
@@ -779,4 +781,30 @@ void fat32_print_info(void) {
 
 uint32_t fat32_get_root_cluster(void) {
     return g_fs.root_dir_first_cluster;
+}
+
+uint32_t g_current_dir_cluster = 2;  
+
+int fat32_chdir(const char* path) {
+    if (!strcmp(path, "/")) {
+        g_current_dir_cluster = g_fs.root_dir_first_cluster;
+        return 0;
+    }
+    
+    if (!strcmp(path, "..")) {
+        
+        g_current_dir_cluster = g_fs.root_dir_first_cluster;
+        return 0;
+    }
+    
+    fat32_dirent_t entry;
+    if (fat32_find_entry(g_current_dir_cluster, path, &entry, NULL, NULL) != 0)
+        return -1;
+    
+    if (!(entry.attr & FAT32_ATTR_DIRECTORY))
+        return -1;  
+    
+    g_current_dir_cluster = ((uint32_t)entry.first_cluster_high << 16) | 
+                            entry.first_cluster_low;
+    return 0;
 }

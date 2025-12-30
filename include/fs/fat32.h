@@ -2,6 +2,7 @@
 #define FAT32_H
 
 #include <stdint.h>
+#include "lib/stddef.h"
 
 #define FAT32_SECTOR_SIZE 512
 #define FAT32_MAX_PATH 260
@@ -173,5 +174,10 @@ int fat32_stat(const char* path, fat32_file_info_t* info);
 void fat32_list_dir(const char* path);
 void fat32_print_info(void);
 uint32_t fat32_get_root_cluster(void); 
+
+extern uint32_t g_current_dir_cluster;
+int fat32_chdir(const char* path);           
+char* fat32_getcwd(char* buf, size_t size);  
+int fat32_opendir_path(const char* path, uint32_t* cluster);  
 
 #endif

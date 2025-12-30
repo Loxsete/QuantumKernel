@@ -122,26 +122,43 @@ void user_main(void) {
             }
         }
 
-        /* ================= WRITE ================= */
-        else if (!strcmp(cmd, "write")) {
-            char* path = next_token(&p);
-            char* text = next_token(&p);
-            if (!path || !text) {
-                puts("usage: write <file> <text>\n");
-            } else {
-                int fd = open(path, 1);
-                if (fd < 0) {
-                    puts("open failed\n");
-                } else {
-                    file_write(fd, text, strlen(text));
-                    file_write(fd, "\n", 1);
-                    close(fd);
-                    puts("ok\n");
-                }
-            }
-        }
-
-        /* ================= APPEND ================= */
+		else if (!strcmp(cmd, "write")) {
+		    char* path = next_token(&p);
+		    char* text = next_token(&p);
+		    if (!path || !text) {
+		        puts("usage: write <file> <text>\n");
+		    } else {
+		        int fd = open(path, 6); 
+		        if (fd < 0) {
+		            puts("open failed\n");
+		        } else {
+		            file_write(fd, text, strlen(text));
+		            file_write(fd, "\n", 1);
+		            close(fd);
+		            puts("ok\n");
+		        }
+		    }
+		}
+		
+		else if (!strcmp(cmd, "append")) {
+		    char* path = next_token(&p);
+		    char* text = next_token(&p);
+		    if (!path || !text) {
+		        puts("usage: append <file> <text>\n");
+		    } else {
+		        int fd = open(path, 22);  
+		        if (fd < 0) {
+		            puts("open failed\n");
+		        } else {
+		            seek(fd, 0, 2);
+		            file_write(fd, text, strlen(text));
+		            file_write(fd, "\n", 1);
+		            close(fd);
+		            puts("ok\n");
+		        }
+		    }
+		}
+        
         else if (!strcmp(cmd, "append")) {
             char* path = next_token(&p);
             char* text = next_token(&p);
@@ -210,7 +227,6 @@ void user_main(void) {
 
         /* ================= LS ================= */
         else if (!strcmp(cmd, "ls")) {
-            char* path = next_token(&p);
             
             typedef struct {
                 char name[32];
@@ -222,13 +238,7 @@ void user_main(void) {
             file_info_t info;
             uint32_t cluster;
             
-            if (!path || !strcmp(path, "/") || !strcmp(path, ".")) {
-                
-                cluster = 2; 
-            } else {
-                
-                cluster = 2;
-            }
+            cluster = get_cwd_cluster_sys();  
             
             puts("Directory listing:\n");
             
@@ -236,19 +246,14 @@ void user_main(void) {
             int count = 0;
             
             while (readdir_sys(cluster, &index, &info) == 0) {
-                if (info.attr & 0x10) {  // FAT32_ATTR_DIRECTORY
+                if (info.attr & 0x10) {
                     puts("<DIR> ");
                 } else {
                     puts("      ");
                 }
                 
                 puts(info.name);
-                
-                puts(" (");
-                char size_buf[16];
-                itoa(info.size, size_buf, 10);
-                puts(size_buf);
-                puts(" bytes)\n");
+                puts("\n");
                 
                 count++;
                 
@@ -261,6 +266,27 @@ void user_main(void) {
             if (count == 0) {
                 puts("(empty directory)\n");
             }
+        }
+        
+        else if (!strcmp(cmd, "cd")) {
+            char* path = next_token(&p);
+            if (!path) {
+                puts("usage: cd <dir>\n");
+            } else {
+                if (chdir_sys(path) == 0)
+                    puts("ok\n");
+                else
+                    puts("cd failed\n");
+            }
+        }
+        
+        else if (!strcmp(cmd, "pwd")) {
+            uint32_t cluster = get_cwd_cluster_sys();
+            char buf[16];
+            itoa(cluster, buf, 10);
+            puts("cluster: ");
+            puts(buf);
+            puts("\n");
         }
 
 

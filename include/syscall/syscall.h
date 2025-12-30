@@ -18,7 +18,10 @@
 #define SYS_SEEK       12
 #define SYS_UNLINK     13
 #define SYS_MKDIR      14
-#define SYS_READDIR    15 
+#define SYS_READDIR    15
+#define SYS_CHDIR      18
+#define SYS_GETCWD     19
+#define SYS_GET_CWD_CLUSTER 20 
 // TIME
  
 #define SYS_RTC_TIME     16  
@@ -42,5 +45,7 @@ int seek(int fd, int offset, int whence);
 int unlink(const char* path);
 int mkdir(const char* path);
 int readdir_sys(uint32_t cluster, uint32_t* index, void* info);  
+int chdir_sys(const char* path);
+uint32_t get_cwd_cluster_sys(void);
 
 #endif

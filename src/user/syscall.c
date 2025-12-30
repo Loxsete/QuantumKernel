@@ -214,6 +214,19 @@ void syscall_dispatch(regs_t* r) {
             break;
         }
 
+        case SYS_CHDIR: {
+            const char* path = (const char*)r->ebx;
+            int result = fat32_chdir(path);
+            r->eax = result;
+            break;
+        }
+        
+        case SYS_GET_CWD_CLUSTER: {
+            extern uint32_t g_current_dir_cluster;
+            r->eax = g_current_dir_cluster;
+            break;
+        }
+
         // TIME
 
         
@@ -328,3 +341,12 @@ __attribute__((used))
 int timezone_sys(void);
 
 
+__attribute__((used))
+int chdir_sys(const char* path) {
+    return syscall_invoke(SYS_CHDIR, (int)path, 0, 0);
+}
+
+__attribute__((used))
+uint32_t get_cwd_cluster_sys(void) {
+    return syscall_invoke(SYS_GET_CWD_CLUSTER, 0, 0, 0);
+}
