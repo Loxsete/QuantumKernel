@@ -10,7 +10,7 @@ A minimal 32-bit operating system kernel with basic system call support and an i
 - System call interface (int 0x80)
 
   
-<img width="646" height="546" alt="screen" src="https://github.com/user-attachments/assets/09604d76-3469-4f5a-a380-b64e99d7a12b" />
+<img width="629" height="433" alt="image" src="https://github.com/user-attachments/assets/709dda66-77a6-41af-a6b0-0153cf0c8153" />
 
 
 
