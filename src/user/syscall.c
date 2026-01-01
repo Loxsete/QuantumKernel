@@ -7,6 +7,10 @@
 #include "drivers/ata.h"
 #include "fs/fat32.h"
 #include "drivers/rtc.h"
+#include "drivers/net/ip.h"
+#include "drivers/net/icmp.h"
+#include "drivers/net/arp.h"
+#include "drivers/net/ethernet.h"
 
 typedef struct regs {
     uint32_t edi, esi, ebp, esp;
@@ -105,7 +109,6 @@ void syscall_dispatch(regs_t* r) {
             break;
         }
         
-        // FAT32 syscalls
         case SYS_OPEN: {
             const char* path = (const char*)r->ebx;
             int flags = r->ecx;
@@ -226,25 +229,52 @@ void syscall_dispatch(regs_t* r) {
             r->eax = g_current_dir_cluster;
             break;
         }
-
-        // TIME
-
         
         case SYS_RTC_TIME: {
             rtc_time_t* out = (rtc_time_t*)r->ebx;
-           	if (out)
+            if (out)
                 rtc_time_sys(out);
-                r->eax = 0;
+            r->eax = 0;
             break;
-            }
+        }
         
         case SYS_TIMEZONE: {
             int* out = (int*)r->ebx;
             if (out)
-            *out = timezone_sys();  // используем функцию вместо прямого доступа
+                *out = timezone_sys();
             r->eax = 0;
             break;
-            }
+        }
+
+        case SYS_NET_INIT: {
+            uint32_t ip = r->ebx;
+            (void)r->ecx;
+            (void)r->edx;
+            
+            ip_init(ip);
+            arp_init(ip);
+            
+            r->eax = 0;
+            break;
+        }
+
+        case SYS_PING: {
+            uint32_t ip = r->ebx;
+            icmp_ping(ip);
+            r->eax = 0;
+            break;
+        }
+
+		case SYS_PING_STATUS: {
+		    r->eax = icmp_get_status();
+		    break;
+		}
+
+		case SYS_PING_RESET: {
+		    icmp_reset_status();
+		    r->eax = 0;
+		    break;
+		}
         
         default:
             term_puts("[unknown syscall]\n");
@@ -291,7 +321,6 @@ void sleep_sys(uint32_t ms) {
     syscall_invoke(SYS_SLEEP, ms, 0, 0);
 }
 
-// FAT32 wrappers
 __attribute__((used))
 int open(const char* path, int flags) {
     return syscall_invoke(SYS_OPEN, (int)path, flags, 0);
@@ -327,19 +356,16 @@ int mkdir(const char* path) {
     return syscall_invoke(SYS_MKDIR, (int)path, 0, 0);
 }
 
-
 __attribute__((used))
 int readdir_sys(uint32_t cluster, uint32_t* index, void* info) {
     return syscall_invoke(SYS_READDIR, cluster, (int)index, (int)info);
 }
-
 
 __attribute__((used))
 void rtc_time_sys(rtc_time_t* out);
 
 __attribute__((used))
 int timezone_sys(void);
-
 
 __attribute__((used))
 int chdir_sys(const char* path) {
@@ -349,4 +375,24 @@ int chdir_sys(const char* path) {
 __attribute__((used))
 uint32_t get_cwd_cluster_sys(void) {
     return syscall_invoke(SYS_GET_CWD_CLUSTER, 0, 0, 0);
+}
+
+__attribute__((used))
+int net_init_sys(uint32_t ip, uint32_t gateway, uint32_t netmask) {
+    return syscall_invoke(SYS_NET_INIT, ip, gateway, netmask);
+}
+
+__attribute__((used))
+int ping_sys(uint32_t ip) {
+    return syscall_invoke(SYS_PING, ip, 0, 0);
+}
+
+__attribute__((used))
+int ping_status_sys(void) {
+    return syscall_invoke(SYS_PING_STATUS, 0, 0, 0);
+}
+
+__attribute__((used))
+void ping_reset_sys(void) {
+    syscall_invoke(SYS_PING_RESET, 0, 0, 0);
 }

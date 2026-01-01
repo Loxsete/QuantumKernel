@@ -1,0 +1,260 @@
+
+build/kernel.bin:     file format elf32-i386
+
+SYMBOL TABLE:
+00000000 l    df *ABS*	00000000 src/kernel/entry.asm
+00109000 l     O .bss	00000001 stack_bottom
+00000000 l    df *ABS*	00000000 src/syscall/syscall_raw.asm
+00000000 l    df *ABS*	00000000 src/cpu/irq.asm
+00000000 l    df *ABS*	00000000 src/cpu/gdt_flush.asm
+0010014c l       .text	00000000 gdt_flush.flush
+00000000 l    df *ABS*	00000000 src/user/user_entry.asm
+00000000 l    df *ABS*	00000000 ata_error.c
+001001e0 l       .text	00000000 .L9
+001001f0 l       .text	00000000 .L8
+00100200 l       .text	00000000 .L7
+001001d0 l       .text	00000000 .L6
+001001b8 l       .text	00000000 .L10
+001001c0 l       .text	00000000 .L3
+00000000 l    df *ABS*	00000000 paging.c
+00000000 l    df *ABS*	00000000 ata.c
+00000000 l    df *ABS*	00000000 timer.c
+0010f004 l     O .bss	00000004 ticks
+0010f000 l     O .bss	00000004 timer_frequency
+00000000 l    df *ABS*	00000000 pci.c
+001006a0 l     F .text	00000199 pci_check_function
+00100840 l     F .text	000000d6 pci_enumerate_bus
+00000000 l    df *ABS*	00000000 pic.c
+00000000 l    df *ABS*	00000000 keyboard.c
+00105d00 l     O .rodata	00000080 keymap
+00111844 l     O .bss	00000004 kbd_head
+00111840 l     O .bss	00000004 kbd_tail
+00111860 l     O .bss	00000080 kbd_buf
+00000000 l    df *ABS*	00000000 rtc.c
+00000000 l    df *ABS*	00000000 rtl8139.c
+00112008 l     O .bss	00000004 tx.0
+001155f0 l     O .bss	00000004 io_base
+001155ec l     O .bss	00000001 irq_line
+00113000 l     O .bss	000025ec rx_buffer
+0011200c l     O .bss	00000002 current_rx_offset
+00000000 l    df *ABS*	00000000 ip.c
+001155f4 l     O .bss	00000004 local_ip
+00000000 l    df *ABS*	00000000 arp.c
+00115604 l     O .bss	00000004 local_ip
+00115600 l     O .bss	00000004 cached_ip
+001155f8 l     O .bss	00000006 cached_mac
+00000000 l    df *ABS*	00000000 icmp.c
+00115610 l     O .bss	00000002 ping_seq
+0011560c l     O .bss	00000004 ping_waiting
+00115608 l     O .bss	00000004 ping_sent_time
+00000000 l    df *ABS*	00000000 ethernet.c
+00115614 l     O .bss	00000006 local_mac
+00000000 l    df *ABS*	00000000 terminal.c
+0011561c l     O .bss	00000004 cursor_y
+00115620 l     O .bss	00000004 cursor_x
+00000000 l    df *ABS*	00000000 fat32.c
+00101980 l     F .text	0000006b fat32_read_fat
+00125840 l     O .bss	00000278 g_fs
+00125640 l     O .bss	00000200 sector_buffer
+001019f0 l     F .text	00000159 fat32_to_short_name
+00101b50 l     F .text	00000095 fat32_write_cluster.constprop.0
+00115640 l     O .bss	00010000 cluster_buffer
+00101bf0 l     F .text	000000c6 fat32_write_fat.isra.0
+00101cc0 l     F .text	00000095 fat32_read_cluster.constprop.0
+00101d60 l     F .text	0000012e fat32_find_entry
+00101e90 l     F .text	00000104 fat32_alloc_cluster
+00101fa0 l     F .text	00000118 fat32_create_entry
+00000000 l    df *ABS*	00000000 libc.c
+00000000 l    df *ABS*	00000000 string.c
+00000000 l    df *ABS*	00000000 katoi.c
+00000000 l    df *ABS*	00000000 kernel.c
+00103840 l     F .text	00000033 boot_fail
+00103880 l     F .text	00000058 boot_step
+00000000 l    df *ABS*	00000000 idt.c
+00125ae0 l     O .bss	00000800 idt
+00125ac0 l     O .bss	00000006 idt_ptr
+00000000 l    df *ABS*	00000000 tss.c
+00000000 l    df *ABS*	00000000 gdt.c
+00126380 l     O .bss	00000030 gdt
+00126360 l     O .bss	00000006 gp
+00000000 l    df *ABS*	00000000 syscall.c
+001263c0 l     O .bss	00000040 file_used
+00126400 l     O .bss	000001c0 file_table
+00104403 l       .text	00000000 .L2
+001041cb l       .text	00000000 .L26
+00104193 l       .text	00000000 .L25
+00104178 l       .text	00000000 .L24
+00104171 l       .text	00000000 .L23
+00104157 l       .text	00000000 .L22
+0010413d l       .text	00000000 .L21
+0010411b l       .text	00000000 .L20
+001040ee l       .text	00000000 .L39
+00104342 l       .text	00000000 .L18
+00104304 l       .text	00000000 .L17
+001042c6 l       .text	00000000 .L16
+00104286 l       .text	00000000 .L15
+00104271 l       .text	00000000 .L14
+0010425c l       .text	00000000 .L13
+0010422f l       .text	00000000 .L12
+00104213 l       .text	00000000 .L11
+001043c3 l       .text	00000000 .L10
+001043ae l       .text	00000000 .L9
+001043a1 l       .text	00000000 .L8
+00104385 l       .text	00000000 .L7
+001043e6 l       .text	00000000 .L6
+001043da l       .text	00000000 .L5
+001043f9 l       .text	00000000 .L3
+00000000 l    df *ABS*	00000000 user.c
+00104880 l     F .text	00000057 next_token
+001048e0 l     F .text	0000002a puts
+00000000 l    df *ABS*	00000000 
+00108054 l     O .got.plt	00000000 _GLOBAL_OFFSET_TABLE_
+00108028 g     F .text.__x86.get_pc_thunk.cx	00000000 .hidden __x86.get_pc_thunk.cx
+00104790 g     F .text	00000021 get_cwd_cluster_sys
+00104670 g     F .text	00000027 file_write
+001036b0 g     F .text	00000022 strcpy
+00101500 g     F .text	000000b7 icmp_rx
+00101910 g     F .text	00000057 term_init
+00102270 g     F .text	00000361 fat32_format
+00100f00 g     F .text	00000011 timezone_sys
+001000b6 g       .text	00000000 irq4_handler
+00100b90 g     F .text	00000081 pci_register_drivers
+00104850 g     F .text	00000021 ping_reset_sys
+00102cd0 g     F .text	000000c7 fat32_mkdir
+00102e60 g     F .text	000001b7 fat32_readdir
+00108030 g     F .text.__x86.get_pc_thunk.si	00000000 .hidden __x86.get_pc_thunk.si
+001025e0 g     F .text	0000027e fat32_open
+001000a8 g       .text	00000000 irq2_handler
+00103020 g     F .text	000000d3 fat32_list_dir
+00101450 g     F .text	000000a7 icmp_ping
+00108034 g     F .text.__x86.get_pc_thunk.di	00000000 .hidden __x86.get_pc_thunk.di
+00102cb0 g     F .text	0000001e fat32_tell
+0010d000 g     O .bss	00001000 first_page_table
+001000cb g       .text	00000000 irq7_handler
+001020c0 g     F .text	00000029 fat32_init
+001012b0 g     F .text	0000004f ip_rx
+00100920 g     F .text	0000003a pci_config_read_dword
+001028d0 g     F .text	0000015e fat32_read
+00103f20 g     F .text	00000081 tss_init
+001033a0 g     F .text	0000002a memcpy
+001005b0 g     F .text	0000001b timer_callback
+001000f3 g       .text	00000000 irq11_handler
+00108060 g     O .data.rel	00000008 pci_drivers
+001004b0 g     F .text	000000f9 ata_write_sector
+00100630 g     F .text	0000005c sleep
+00112000 g     O .bss	00000006 mac_addr
+00100ef0 g     F .text	0000000f rtc_time_sys
+0010802c g     F .text.__x86.get_pc_thunk.ax	00000000 .hidden __x86.get_pc_thunk.ax
+001034e0 g     F .text	000000ec itoa
+001010e0 g     F .text	0000008e rtl8139_irq_handler
+00100a00 g     F .text	0000003e pci_config_write_dword
+001032a0 g     F .text	00000099 fat32_chdir
+00101320 g     F .text	0000004a arp_lookup
+00102da0 g     F .text	000000bd fat32_unlink
+00104010 g     F .text	00000092 gdt_init
+001002f0 g     F .text	00000036 ata_init
+00100ab0 g     F .text	0000006e pci_config_write_byte
+00100cb0 g     F .text	00000033 kbd_pop
+00108044 g     O .data	00000004 g_current_dir_cluster
+0010011f g       .text	00000000 irq15_handler
+00108024 g     F .text.__x86.get_pc_thunk.dx	00000000 .hidden __x86.get_pc_thunk.dx
+001005d0 g     F .text	00000011 get_tick_count
+00100109 g       .text	00000000 irq13_handler
+00104730 g     F .text	00000027 readdir_sys
+001262e0 g     O .bss	00000068 tss
+00103b90 g     F .text	00000383 idt_init
+001037a0 g     F .text	00000092 katoi
+001038e0 g     F .text	0000025f kernel_main
+00100114 g       .text	00000000 irq14_handler
+001005f0 g     F .text	00000032 timer_init
+00101650 g     F .text	00000087 eth_tx
+001000fe g       .text	00000000 irq12_handler
+00104480 g     F .text	00000027 write
+00104520 g     F .text	00000021 clear
+00103750 g     F .text	00000043 strcat
+001000af g       .text	00000000 irq3_handler
+00100084 g       .text	00000000 irq1_handler
+00103b40 g     F .text	00000041 idt_set_gate
+001000c4 g       .text	00000000 irq6_handler
+00104640 g     F .text	00000027 file_read
+00100050 g       .text	00000000 _start
+001044b0 g     F .text	00000037 read
+00100f60 g     F .text	0000017f rtl8139_init
+001040c0 g     F .text	000003b7 syscall_dispatch
+00103630 g     F .text	0000004c strncmp
+001118e0 g     O .bss	00000004 timezone_offset
+00101370 g     F .text	00000086 arp_request
+00100e00 g     F .text	0000008e load_timezone
+001036e0 g     F .text	00000063 strncpy
+001046d0 g     F .text	00000023 unlink
+00100e90 g     F .text	00000060 rtc_get_local_time
+001002e0 g     F .text	00000003 ata_get_last_error
+0010f020 g     O .bss	00000004 pci_device_count
+00104760 g     F .text	00000023 chdir_sys
+00108038 g     F .text.__x86.get_pc_thunk.bx	00000000 .hidden __x86.get_pc_thunk.bx
+001033d0 g     F .text	00000055 memcmp
+001003d0 g     F .text	000000db ata_read_sector
+00100190 g     F .text	0000007e ata_error_str
+0010d000 g       .bss	00000000 stack_top
+00101760 g     F .text	00000109 term_putc
+00103fb0 g     F .text	00000055 gdt_set_tss
+00102a30 g     F .text	00000216 fat32_write
+00100960 g     F .text	00000044 pci_config_read_word
+00101170 g     F .text	00000015 ip_init
+00100a40 g     F .text	0000006e pci_config_write_word
+0010803c g     F .text.__x86.get_pc_thunk.bp	00000000 .hidden __x86.get_pc_thunk.bp
+00100f20 g     F .text	0000003c rtl8139_send
+00103340 g     F .text	00000052 memset
+001015c0 g     F .text	00000011 icmp_get_status
+001009b0 g     F .text	00000044 pci_config_read_byte
+001046a0 g     F .text	00000027 seek
+00100330 g     F .text	0000009e ata_identify
+00108040 g     O .data	00000004 pci_driver_count
+001035e0 g     F .text	00000048 strcmp
+00103100 g     F .text	00000174 fat32_print_info
+00101300 g     F .text	00000015 arp_init
+00102860 g     F .text	00000067 fat32_close
+00100cf0 g     F .text	00000033 get_timezone_offset
+00100b20 g     F .text	00000067 pci_enumerate
+001016e0 g     F .text	00000063 eth_rx
+00100c20 g     F .text	0000003a pic_remap
+0010f040 g     O .bss	00002800 pci_devices
+00102c50 g     F .text	0000005f fat32_seek
+001000e8 g       .text	00000000 irq10_handler
+00100220 g     F .text	000000b1 paging_init
+00100d30 g     F .text	000000cd rtc_read
+00101630 g     F .text	00000011 eth_mac
+001047f0 g     F .text	00000023 ping_sys
+001018a0 g     F .text	00000061 term_clear
+001047c0 g     F .text	00000027 net_init_sys
+0010014d g       .text	00000000 tss_flush
+00101600 g     F .text	00000026 eth_init
+00100130 g       .text	00000000 gdt_flush
+00101870 g     F .text	0000002b term_puts
+00100c60 g     F .text	0000004c keyboard_irq
+00104910 g     F .text	00000e4a user_main
+001045b0 g     F .text	00000023 sleep_sys
+00104580 g     F .text	00000025 disk_write
+001044f0 g     F .text	00000021 exit
+00101190 g     F .text	0000011d ip_tx
+00100036 g       .text	00000000 syscall_invoke
+00100010 g       .text	00000000 syscall_handler
+00103430 g     F .text	000000a2 atoi
+00100160 g       .text	00000000 enter_user
+00104820 g     F .text	00000021 ping_status_sys
+00100060 g       .text	00000000 irq0_handler
+00103680 g     F .text	00000021 strlen
+00104550 g     F .text	00000025 disk_read
+001045e0 g     F .text	00000025 open
+0010e000 g     O .bss	00001000 page_directory
+00103280 g     F .text	00000011 fat32_get_root_cluster
+00101400 g     F .text	00000046 arp_rx
+001015e0 g     F .text	00000015 icmp_reset_status
+001000dd g       .text	00000000 irq9_handler
+001020f0 g     F .text	00000180 fat32_mount
+00104700 g     F .text	00000023 mkdir
+00104610 g     F .text	00000023 close
+001000d2 g       .text	00000000 irq8_handler
+001000bd g       .text	00000000 irq5_handler
+
+

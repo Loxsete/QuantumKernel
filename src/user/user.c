@@ -81,7 +81,6 @@ void user_main(void) {
         char* p = buf;
         char* cmd = next_token(&p);
 
-        /* ================= HELP ================= */
         if (!strcmp(cmd, "help")) {
             puts(
                 "Commands:\n"
@@ -92,17 +91,21 @@ void user_main(void) {
                 " append <file> <text>\n"
                 " rm <file>\n"
                 " mkdir <dir>\n"
+                " ls\n"
+                " cd <dir>\n"
+                " pwd\n"
                 " seektest <file>\n"
                 " sleep <ms>\n"
+                " time\n"
+                " netinit <ip> <gateway> <netmask>\n"
+                " ping <ip>\n"
             );
         }
 
-        /* ================= CLEAR ================= */
         else if (!strcmp(cmd, "clear")) {
             clear();
         }
 
-        /* ================= CAT ================= */
         else if (!strcmp(cmd, "cat")) {
             char* path = next_token(&p);
             if (!path) {
@@ -122,55 +125,53 @@ void user_main(void) {
             }
         }
 
-		
-      	else if (!strcmp(cmd, "write")) {
-      	    char* path = next_token(&p);
-      	    if (!path) {
-      	        puts("usage: write <file> <text>\n");
-      	    } else {
-      	        while (*p == ' ') p++;
-      	        
-      	        if (*p == 0) {
-      	            puts("usage: write <file> <text>\n");
-      	        } else {
-      	            int fd = open(path, 6);
-      	            if (fd < 0) {
-      	                puts("open failed\n");
-      	            } else {
-      	                file_write(fd, p, strlen(p));  
-      	                file_write(fd, "\n", 1);
-      	                close(fd);
-      	                puts("ok\n");
-      	            }
-      	        }
-      	    }
-      	}
-      	
-      	else if (!strcmp(cmd, "append")) {
-      	    char* path = next_token(&p);
-      	    if (!path) {
-      	        puts("usage: append <file> <text>\n");
-      	    } else {
-      	        while (*p == ' ') p++;
-      	        
-      	        if (*p == 0) {
-      	            puts("usage: append <file> <text>\n");
-      	        } else {
-      	            int fd = open(path, 22);
-      	            if (fd < 0) {
-      	                puts("open failed\n");
-      	            } else {
-      	                seek(fd, 0, 2);
-      	                file_write(fd, p, strlen(p));  
-      	                file_write(fd, "\n", 1);
-      	                close(fd);
-      	                puts("ok\n");
-      	            }
-      	        }
-      	    }
-      	}
+        else if (!strcmp(cmd, "write")) {
+            char* path = next_token(&p);
+            if (!path) {
+                puts("usage: write <file> <text>\n");
+            } else {
+                while (*p == ' ') p++;
+                
+                if (*p == 0) {
+                    puts("usage: write <file> <text>\n");
+                } else {
+                    int fd = open(path, 6);
+                    if (fd < 0) {
+                        puts("open failed\n");
+                    } else {
+                        file_write(fd, p, strlen(p));  
+                        file_write(fd, "\n", 1);
+                        close(fd);
+                        puts("ok\n");
+                    }
+                }
+            }
+        }
+        
+        else if (!strcmp(cmd, "append")) {
+            char* path = next_token(&p);
+            if (!path) {
+                puts("usage: append <file> <text>\n");
+            } else {
+                while (*p == ' ') p++;
+                
+                if (*p == 0) {
+                    puts("usage: append <file> <text>\n");
+                } else {
+                    int fd = open(path, 22);
+                    if (fd < 0) {
+                        puts("open failed\n");
+                    } else {
+                        seek(fd, 0, 2);
+                        file_write(fd, p, strlen(p));  
+                        file_write(fd, "\n", 1);
+                        close(fd);
+                        puts("ok\n");
+                    }
+                }
+            }
+        }
 
-        /* ================= RM ================= */
         else if (!strcmp(cmd, "rm")) {
             char* path = next_token(&p);
             if (!path) {
@@ -183,7 +184,6 @@ void user_main(void) {
             }
         }
 
-        /* ================= MKDIR ================= */
         else if (!strcmp(cmd, "mkdir")) {
             char* path = next_token(&p);
             if (!path) {
@@ -196,7 +196,6 @@ void user_main(void) {
             }
         }
 
-        /* ================= SEEK TEST ================= */
         else if (!strcmp(cmd, "seektest")) {
             char* path = next_token(&p);
             if (!path) {
@@ -217,9 +216,7 @@ void user_main(void) {
             }
         }
 
-        /* ================= LS ================= */
         else if (!strcmp(cmd, "ls")) {
-            
             typedef struct {
                 char name[32];
                 uint32_t size;
@@ -281,8 +278,6 @@ void user_main(void) {
             puts("\n");
         }
 
-
-        /* ================= SLEEP ================= */
         else if (!strcmp(cmd, "sleep")) {
             char* t = next_token(&p);
             if (t)
@@ -310,6 +305,51 @@ void user_main(void) {
             puts("\n");
         }
 
+        else if (!strcmp(cmd, "netinit")) {
+            char* ip_str = next_token(&p);
+            char* gw_str = next_token(&p);
+            char* nm_str = next_token(&p);
+            
+            if (!ip_str || !gw_str || !nm_str) {
+                puts("usage: netinit <ip> <gateway> <netmask>\n");
+                puts("example: netinit 3232235777 3232235521 4294967040\n");
+            } else {
+                uint32_t ip = atoi(ip_str);
+                uint32_t gw = atoi(gw_str);
+                uint32_t nm = atoi(nm_str);
+                
+                if (net_init_sys(ip, gw, nm) == 0)
+                    puts("network initialized\n");
+                else
+                    puts("network init failed\n");
+            }
+        }
+        
+        else if (!strcmp(cmd, "ping")) {
+            char* ip_str = next_token(&p);
+            if (!ip_str) {
+                puts("usage: ping <ip>\n");
+                puts("example: ping 134744072\n");
+            } else {
+                uint32_t ip = atoi(ip_str);
+                
+                ping_reset_sys();
+                ping_sys(ip);
+                puts("Pinging... ");
+                
+                uint32_t timeout = 0;
+                while (ping_status_sys() && timeout < 5000) {
+                    sleep_sys(10);
+                    timeout += 10;
+                }
+                
+                if (ping_status_sys()) {
+                    puts("Request timed out.\n");
+                }
+            }
+        }
+		
+		
         else {
             puts("unknown command\n");
         }
