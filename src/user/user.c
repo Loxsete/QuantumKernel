@@ -1,7 +1,7 @@
 #include "syscall/syscall.h"
 #include "lib/libc.h"
 #include "lib/string.h"
-#include "lib/rtc.h"   
+#include "lib/rtc.h"
 #include <stdint.h>
 
 #define BUF_SIZE 256
@@ -99,6 +99,9 @@ void user_main(void) {
                 " time\n"
                 " netinit <ip> <gateway> <netmask>\n"
                 " ping <ip>\n"
+                " arp [show|request <ip>]\n"
+                " netstat\n"
+                " testnet\n"
             );
         }
 
@@ -131,7 +134,6 @@ void user_main(void) {
                 puts("usage: write <file> <text>\n");
             } else {
                 while (*p == ' ') p++;
-                
                 if (*p == 0) {
                     puts("usage: write <file> <text>\n");
                 } else {
@@ -139,7 +141,7 @@ void user_main(void) {
                     if (fd < 0) {
                         puts("open failed\n");
                     } else {
-                        file_write(fd, p, strlen(p));  
+                        file_write(fd, p, strlen(p));
                         file_write(fd, "\n", 1);
                         close(fd);
                         puts("ok\n");
@@ -154,7 +156,6 @@ void user_main(void) {
                 puts("usage: append <file> <text>\n");
             } else {
                 while (*p == ' ') p++;
-                
                 if (*p == 0) {
                     puts("usage: append <file> <text>\n");
                 } else {
@@ -163,7 +164,7 @@ void user_main(void) {
                         puts("open failed\n");
                     } else {
                         seek(fd, 0, 2);
-                        file_write(fd, p, strlen(p));  
+                        file_write(fd, p, strlen(p));
                         file_write(fd, "\n", 1);
                         close(fd);
                         puts("ok\n");
@@ -226,32 +227,24 @@ void user_main(void) {
             
             file_info_t info;
             uint32_t cluster;
-            
-            cluster = get_cwd_cluster_sys();  
-            
+            cluster = get_cwd_cluster_sys();
             puts("Directory listing:\n");
-            
             uint32_t index = 0;
             int count = 0;
-            
             while (readdir_sys(cluster, &index, &info) == 0) {
                 if (info.attr & 0x10) {
                     puts("<DIR> ");
                 } else {
                     puts("      ");
                 }
-                
                 puts(info.name);
                 puts("\n");
-                
                 count++;
-                
                 if (count > 100) {
                     puts("...(too many entries)\n");
                     break;
                 }
             }
-            
             if (count == 0) {
                 puts("(empty directory)\n");
             }
@@ -271,10 +264,10 @@ void user_main(void) {
         
         else if (!strcmp(cmd, "pwd")) {
             uint32_t cluster = get_cwd_cluster_sys();
-            char buf[16];
-            itoa(cluster, buf, 10);
+            char xbuf[16];
+            itoa(cluster, xbuf, 10);
             puts("cluster: ");
-            puts(buf);
+            puts(xbuf);
             puts("\n");
         }
 
@@ -286,22 +279,20 @@ void user_main(void) {
 
         else if (!strcmp(cmd, "time")) {
             rtc_time_t t;
-            rtc_time_sys(&t);  
+            rtc_time_sys(&t);
             int tz = timezone_sys();
-        
-            char buf[64];
-            itoa(t.hour, buf, 10);
-            puts(buf);
+            char xbuf[64];
+            itoa(t.hour, xbuf, 10);
+            puts(xbuf);
             puts(":");
-            itoa(t.min, buf, 10);
-            puts(buf);
+            itoa(t.min, xbuf, 10);
+            puts(xbuf);
             puts(":");
-            itoa(t.sec, buf, 10);
-            puts(buf);
-        
+            itoa(t.sec, xbuf, 10);
+            puts(xbuf);
             puts(" UTC");
-            itoa(tz, buf, 10);
-            puts(buf);
+            itoa(tz, xbuf, 10);
+            puts(xbuf);
             puts("\n");
         }
 
@@ -309,7 +300,6 @@ void user_main(void) {
             char* ip_str = next_token(&p);
             char* gw_str = next_token(&p);
             char* nm_str = next_token(&p);
-            
             if (!ip_str || !gw_str || !nm_str) {
                 puts("usage: netinit <ip> <gateway> <netmask>\n");
                 puts("example: netinit 3232235777 3232235521 4294967040\n");
@@ -317,7 +307,6 @@ void user_main(void) {
                 uint32_t ip = atoi(ip_str);
                 uint32_t gw = atoi(gw_str);
                 uint32_t nm = atoi(nm_str);
-                
                 if (net_init_sys(ip, gw, nm) == 0)
                     puts("network initialized\n");
                 else
@@ -332,24 +321,167 @@ void user_main(void) {
                 puts("example: ping 134744072\n");
             } else {
                 uint32_t ip = atoi(ip_str);
-                
+                puts("Sending ICMP Echo Request...\n");
                 ping_reset_sys();
-                ping_sys(ip);
-                puts("Pinging... ");
-                
-                uint32_t timeout = 0;
-                while (ping_status_sys() && timeout < 5000) {
-                    sleep_sys(10);
-                    timeout += 10;
-                }
-                
-                if (ping_status_sys()) {
-                    puts("Request timed out.\n");
+                int send_result = ping_sys(ip);
+                if (send_result < 0) {
+                    puts("ERROR: Failed to send ping packet\n");
+                    puts("Possible causes:\n");
+                    puts("  - Network not initialized (use netinit)\n");
+                    puts("  - Invalid IP address\n");
+                    puts("  - Network hardware failure\n");
+                } else {
+                    puts("Waiting for reply");
+                    uint32_t timeout = 0;
+                    while (ping_status_sys() && timeout < 5000) {
+                        if (timeout % 1000 == 0) {
+                            puts(".");
+                        }
+                        sleep_sys(100);
+                        timeout += 100;
+                    }
+                    puts("\n");
+                    if (ping_status_sys()) {
+                        puts("Request timed out (5000ms)\n");
+                        puts("Possible causes:\n");
+                        puts("  - Host is down or unreachable\n");
+                        puts("  - No ARP response from host\n");
+                        puts("  - Packet was dropped (check ARP cache)\n");
+                        puts("  - Network routing issue\n");
+                        puts("  - ICMP blocked by firewall\n");
+                    } else {
+                        puts("SUCCESS: Received ICMP Echo Reply\n");
+                    }
                 }
             }
         }
-		
-		
+
+        else if (!strcmp(cmd, "arp")) {
+            char* subcmd = next_token(&p);
+            if (!subcmd || !strcmp(subcmd, "show")) {
+                arp_print_table_sys();
+            }
+            else if (!strcmp(subcmd, "request")) {
+                char* ip_str = next_token(&p);
+                if (!ip_str) {
+                    puts("usage: arp request <ip>\n");
+                } else {
+                    uint32_t ip = atoi(ip_str);
+                    arp_request_sys(ip);
+                    puts("ARP request sent\n");
+                }
+            }
+            else {
+                puts("usage: arp [show|request <ip>]\n");
+            }
+        }
+
+        else if (!strcmp(cmd, "netstat")) {
+            puts("\n=== Network Status ===\n");
+            net_status_t status;
+            if (get_net_status_sys(&status) == 0) {
+                char xbuf[16];
+                puts("Link: ");
+                puts(status.link_up ? "UP" : "DOWN");
+                puts("\n");
+                puts("IP: ");
+                itoa(status.ip, xbuf, 10);
+                puts(xbuf);
+                puts("\n");
+                puts("Gateway: ");
+                itoa(status.gateway, xbuf, 10);
+                puts(xbuf);
+                puts("\n");
+                puts("Netmask: ");
+                itoa(status.netmask, xbuf, 10);
+                puts(xbuf);
+                puts("\n");
+                puts("MAC: ");
+                for (int i = 0; i < 6; i++) {
+                    itoa(status.mac[i], xbuf, 16);
+                    puts(xbuf);
+                    if (i < 5) puts(":");
+                }
+                puts("\n");
+                puts("TX packets: ");
+                itoa(status.tx_packets, xbuf, 10);
+                puts(xbuf);
+                puts("\n");
+                puts("RX packets: ");
+                itoa(status.rx_packets, xbuf, 10);
+                puts(xbuf);
+                puts("\n");
+                puts("TX errors: ");
+                itoa(status.tx_errors, xbuf, 10);
+                puts(xbuf);
+                puts("\n");
+                puts("RX errors: ");
+                itoa(status.rx_errors, xbuf, 10);
+                puts(xbuf);
+                puts("\n");
+            } else {
+                puts("Network not initialized\n");
+            }
+            puts("====================\n");
+        }
+
+        else if (!strcmp(cmd, "testnet")) {
+            puts("\n=== Network Diagnostic Test ===\n");
+            puts("1. Checking network initialization... ");
+            net_status_t status;
+            if (get_net_status_sys(&status) < 0) {
+                puts("FAIL - Network not initialized\n");
+                puts("   Run: netinit <ip> <gateway> <netmask>\n");
+                prompt();
+                continue;
+            }
+            puts("OK\n");
+            puts("2. Checking link status... ");
+            if (!status.link_up) {
+                puts("FAIL - Link is DOWN\n");
+                puts("   Check network cable connection\n");
+                prompt();
+                continue;
+            }
+            puts("OK\n");
+            puts("3. Testing ARP to gateway... ");
+            char xbuf[16];
+            itoa(status.gateway, xbuf, 10);
+            puts(xbuf);
+            puts("... ");
+            arp_request_sys(status.gateway);
+            sleep_sys(1000);
+            uint8_t mac[6];
+            if (arp_lookup_sys(status.gateway, mac) == 0) {
+                puts("FAIL - No ARP response\n");
+                puts("   Gateway is unreachable or wrong IP\n");
+                prompt();
+                continue;
+            }
+            puts("OK (MAC: ");
+            for (int i = 0; i < 6; i++) {
+                itoa(mac[i], xbuf, 16);
+                puts(xbuf);
+                if (i < 5) puts(":");
+            }
+            puts(")\n");
+            puts("4. Pinging gateway... ");
+            ping_reset_sys();
+            ping_sys(status.gateway);
+            uint32_t timeout = 0;
+            while (ping_status_sys() && timeout < 2000) {
+                sleep_sys(10);
+                timeout += 10;
+            }
+            if (ping_status_sys()) {
+                puts("FAIL - Ping timeout\n");
+                puts("   Gateway doesn't respond to ICMP\n");
+            } else {
+                puts("OK\n");
+            }
+            puts("\n=== Test Complete ===\n");
+        }
+
         else {
             puts("unknown command\n");
         }

@@ -1,12 +1,13 @@
 #include "drivers/pci.h"
 #include "drivers/terminal.h"
 #include "drivers/io.h"
+#include "lib/libc.h"
 
 pci_device_t pci_devices[MAX_PCI_DEVICES];
 int pci_device_count = 0;
+
 static void pci_check_function(uint8_t bus, uint8_t device, uint8_t func);
 static void pci_enumerate_bus(uint8_t bus);
-
 
 static uint32_t pci_make_address(uint8_t bus, uint8_t device, uint8_t func, uint8_t offset) {
     return (uint32_t)(0x80000000 | (bus << 16) | (device << 11) | (func << 8) | (offset & 0xFC));
@@ -68,6 +69,8 @@ static void pci_check_function(uint8_t bus, uint8_t device, uint8_t func) {
     uint16_t vendor = pci_config_read_word(bus, device, func, 0);
     if (vendor == 0xFFFF) return;
 
+    if (pci_device_count >= MAX_PCI_DEVICES) return;
+
     pci_device_t *dev = &pci_devices[pci_device_count++];
     dev->bus = bus;
     dev->device = device;
@@ -90,9 +93,10 @@ static void pci_check_function(uint8_t bus, uint8_t device, uint8_t func) {
     }
 }
 
-
-
 void pci_enumerate(void) {
+    term_puts("[PCI] Enumerating devices...\n");
+    pci_device_count = 0;
+    
     uint8_t header = pci_config_read_byte(0, 0, 0, 0xE);
     if (header & 0x80) {
         for (uint8_t func = 0; func < 8; func++) {
@@ -103,6 +107,12 @@ void pci_enumerate(void) {
     } else {
         pci_enumerate_bus(0);
     }
+    
+    term_puts("[PCI] Found ");
+    char buf[16];
+    itoa(pci_device_count, buf, 10);
+    term_puts(buf);
+    term_puts(" devices\n");
 }
 
 extern void rtl8139_init(pci_device_t *dev);
@@ -114,11 +124,23 @@ pci_driver_t pci_drivers[] = {
 int pci_driver_count = sizeof(pci_drivers) / sizeof(pci_driver_t);
 
 void pci_register_drivers(void) {
+    term_puts("[PCI] Registering drivers...\n");
+    
     for (int i = 0; i < pci_device_count; i++) {
         pci_device_t *dev = &pci_devices[i];
+        
         for (int j = 0; j < pci_driver_count; j++) {
             if (pci_drivers[j].vendor_id == dev->vendor_id &&
                 pci_drivers[j].device_id == dev->device_id) {
+                term_puts("[PCI] Found driver for ");
+                char buf[16];
+                itoa(dev->vendor_id, buf, 16);
+                term_puts(buf);
+                term_puts(":");
+                itoa(dev->device_id, buf, 16);
+                term_puts(buf);
+                term_puts("\n");
+                
                 pci_drivers[j].init(dev);
             }
         }

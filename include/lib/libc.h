@@ -18,4 +18,9 @@ int memcmp(const void* s1, const void* s2, uint32_t n);
 int atoi(const char* str);
 void itoa(int value, char* str, int base);
 
+// Memory allocation
+void* malloc(size_t size);
+void  free(void* ptr);
+
+
 #endif

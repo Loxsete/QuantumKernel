@@ -4,15 +4,12 @@ set -e
 BUILD_DIR=build
 DISK_IMG="$BUILD_DIR/disk.img"
 ARCH=i386
-
 CC=gcc
 LD=ld
 AS=nasm
-
 CFLAGS="-ffreestanding -nostdlib -fno-builtin -fno-stack-protector -Wall -Wextra -Werror -Iinclude -m32"
 ASFLAGS="-f elf32"
 LDFLAGS="-m elf_i386"
-
 SRC_DIRS="src/kernel src/cpu src/drivers src/mm src/user src/syscall src/lib src/fs src/errors src/drivers/pci src/drivers/rtl8139 src/drivers/net"
 
 GREEN='\033[0;32m'
@@ -73,14 +70,11 @@ echo "#!/bin/sh
 echo Hello from FAT32
 echo Kernel test file
 " > "$BUILD_DIR/text.txt"
-
 mcopy -i "$DISK_IMG" "$BUILD_DIR/text.txt" ::text.txt
 
 echo "${BLUE}[*] Writing tz.txt to disk image${NC}"
 echo "UTC+3" > "$BUILD_DIR/tz.txt"
 mcopy -i "$DISK_IMG" "$BUILD_DIR/tz.txt" ::tz.txt
-
-
 
 echo "${GREEN}[✓] Build complete!${NC}"
 echo ""
@@ -88,12 +82,18 @@ echo "${BLUE}[*] Disk image: $DISK_IMG (16MB)${NC}"
 echo "${BLUE}[*] Kernel: $BUILD_DIR/kernel.bin${NC}"
 echo ""
 echo "${BLUE}[*] Running QEMU with disk${NC}"
+echo "${YELLOW}Network: User-mode (10.0.2.0/24)${NC}"
+echo "${YELLOW}  Your IP: 10.0.2.15 (167772687)${NC}"
+echo "${YELLOW}  Gateway: 10.0.2.2 (167772674)${NC}"
+echo "${YELLOW}  Use: netinit 167772687 167772674 4294967040${NC}"
+echo ""
+
 qemu-system-x86_64 \
     -kernel "$BUILD_DIR/kernel.bin" \
     -hda "$DISK_IMG" \
     -m 128M \
-    -net nic,model=rtl8139 \
-    -net user \
+    -netdev user,id=net0 \
+    -device rtl8139,netdev=net0 \
     -no-reboot \
     -no-shutdown \
     -rtc base=localtime,clock=host

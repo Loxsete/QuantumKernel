@@ -11,6 +11,7 @@
 #include "drivers/net/icmp.h"
 #include "drivers/net/arp.h"
 #include "drivers/net/ethernet.h"
+#include "fs/vfs.h"
 
 typedef struct regs {
     uint32_t edi, esi, ebp, esp;
@@ -21,6 +22,11 @@ typedef struct regs {
 #define MAX_FILES 16
 static fat32_file_t file_table[MAX_FILES];
 static int file_used[MAX_FILES] = {0};
+
+static uint32_t net_ip = 0;
+static uint32_t net_gateway = 0;
+static uint32_t net_netmask = 0;
+static int net_initialized = 0;
 
 static int alloc_fd(void) {
     for (int i = 0; i < MAX_FILES; i++) {
@@ -77,12 +83,10 @@ void syscall_dispatch(regs_t* r) {
         case SYS_DISK_READ: {
             uint32_t lba = r->ebx;
             uint8_t* buffer = (uint8_t*)r->ecx;
-            
             if (buffer == 0) {
                 r->eax = -1;
                 break;
             }
-            
             int result = ata_read_sector(lba, buffer);
             r->eax = result;
             break;
@@ -91,12 +95,10 @@ void syscall_dispatch(regs_t* r) {
         case SYS_DISK_WRITE: {
             uint32_t lba = r->ebx;
             const uint8_t* buffer = (const uint8_t*)r->ecx;
-            
             if (buffer == 0) {
                 r->eax = -1;
                 break;
             }
-            
             int result = ata_write_sector(lba, buffer);
             r->eax = result;
             break;
@@ -109,34 +111,12 @@ void syscall_dispatch(regs_t* r) {
             break;
         }
         
-        case SYS_OPEN: {
-            const char* path = (const char*)r->ebx;
-            int flags = r->ecx;
-            
-            int fd = alloc_fd();
-            if (fd < 0) {
-                r->eax = -1;
-                break;
-            }
-            
-            int result = fat32_open(&file_table[fd], path, (uint8_t)flags);
-            if (result != 0) {
-                free_fd(fd);
-                r->eax = -1;
-            } else {
-                r->eax = fd;
-            }
-            break;
-        }
-        
         case SYS_CLOSE: {
             int fd = r->ebx;
-            
             if (fd < 0 || fd >= MAX_FILES || !file_used[fd]) {
                 r->eax = -1;
                 break;
             }
-            
             int result = fat32_close(&file_table[fd]);
             free_fd(fd);
             r->eax = result;
@@ -147,12 +127,10 @@ void syscall_dispatch(regs_t* r) {
             int fd = r->ebx;
             void* buffer = (void*)r->ecx;
             uint32_t size = r->edx;
-            
             if (fd < 0 || fd >= MAX_FILES || !file_used[fd]) {
                 r->eax = -1;
                 break;
             }
-            
             int result = fat32_read(&file_table[fd], buffer, size);
             r->eax = result;
             break;
@@ -162,12 +140,10 @@ void syscall_dispatch(regs_t* r) {
             int fd = r->ebx;
             const void* buffer = (const void*)r->ecx;
             uint32_t size = r->edx;
-            
             if (fd < 0 || fd >= MAX_FILES || !file_used[fd]) {
                 r->eax = -1;
                 break;
             }
-            
             int result = fat32_write(&file_table[fd], buffer, size);
             r->eax = result;
             break;
@@ -177,12 +153,10 @@ void syscall_dispatch(regs_t* r) {
             int fd = r->ebx;
             int offset = r->ecx;
             int whence = r->edx;
-            
             if (fd < 0 || fd >= MAX_FILES || !file_used[fd]) {
                 r->eax = -1;
                 break;
             }
-            
             int result = fat32_seek(&file_table[fd], offset, (uint8_t)whence);
             r->eax = result;
             break;
@@ -206,12 +180,10 @@ void syscall_dispatch(regs_t* r) {
             uint32_t cluster = r->ebx;
             uint32_t* index = (uint32_t*)r->ecx;
             fat32_file_info_t* info = (fat32_file_info_t*)r->edx;
-            
             if (!index || !info) {
                 r->eax = -1;
                 break;
             }
-            
             int result = fat32_readdir(cluster, index, info);
             r->eax = result;
             break;
@@ -247,13 +219,12 @@ void syscall_dispatch(regs_t* r) {
         }
 
         case SYS_NET_INIT: {
-            uint32_t ip = r->ebx;
-            (void)r->ecx;
-            (void)r->edx;
-            
-            ip_init(ip);
-            arp_init(ip);
-            
+            net_ip = r->ebx;
+            net_gateway = r->ecx;
+            net_netmask = r->edx;
+            ip_init(net_ip);
+            arp_init(net_ip);
+            net_initialized = 1;
             r->eax = 0;
             break;
         }
@@ -265,16 +236,82 @@ void syscall_dispatch(regs_t* r) {
             break;
         }
 
-		case SYS_PING_STATUS: {
-		    r->eax = icmp_get_status();
-		    break;
-		}
+        case SYS_PING_STATUS: {
+            r->eax = icmp_get_status();
+            break;
+        }
 
-		case SYS_PING_RESET: {
-		    icmp_reset_status();
-		    r->eax = 0;
-		    break;
-		}
+        case SYS_PING_RESET: {
+            icmp_reset_status();
+            r->eax = 0;
+            break;
+        }
+
+        case SYS_ARP_REQUEST: {
+            uint32_t ip = r->ebx;
+            arp_request(ip);
+            r->eax = 0;
+            break;
+        }
+
+        case SYS_ARP_LOOKUP: {
+            uint32_t ip = r->ebx;
+            uint8_t* mac = (uint8_t*)r->ecx;
+            if (!mac) {
+                r->eax = -1;
+                break;
+            }
+            r->eax = arp_lookup(ip, mac);
+            break;
+        }
+
+        case SYS_ARP_PRINT: {
+            arp_print_table_sys();
+            r->eax = 0;
+            break;
+        }
+
+        case SYS_NET_STATUS: {
+            net_status_t* status = (net_status_t*)r->ebx;
+            if (!status) {
+                r->eax = -1;
+                break;
+            }
+            if (!net_initialized) {
+                r->eax = -1;
+                break;
+            }
+            status->ip = net_ip;
+            status->gateway = net_gateway;
+            status->netmask = net_netmask;
+            uint8_t* mac = eth_mac();
+            for (int i = 0; i < 6; i++) {
+                status->mac[i] = mac[i];
+            }
+            status->link_up = 1;
+            status->tx_packets = 0;
+            status->rx_packets = 0;
+            status->tx_errors = 0;
+            status->rx_errors = 0;
+            r->eax = 0;
+            break;
+        }
+
+        case SYS_OPEN: {
+            const char* path = (const char*)r->ebx;
+            int fd = alloc_fd();
+            if (fd < 0) {
+                r->eax = -1;
+                break;
+            }
+            if (vfs_open(path, (vfs_file_t*)&file_table[fd], r->ecx) != 0) {
+                free_fd(fd);
+                r->eax = -1;
+            } else {
+                r->eax = fd;
+            }
+            break;
+        }
         
         default:
             term_puts("[unknown syscall]\n");
@@ -282,7 +319,6 @@ void syscall_dispatch(regs_t* r) {
             break;
     }
 }
-
 
 __attribute__((used))
 int write(int fd, const char* buf, uint32_t len) {
@@ -362,12 +398,6 @@ int readdir_sys(uint32_t cluster, uint32_t* index, void* info) {
 }
 
 __attribute__((used))
-void rtc_time_sys(rtc_time_t* out);
-
-__attribute__((used))
-int timezone_sys(void);
-
-__attribute__((used))
 int chdir_sys(const char* path) {
     return syscall_invoke(SYS_CHDIR, (int)path, 0, 0);
 }
@@ -395,4 +425,24 @@ int ping_status_sys(void) {
 __attribute__((used))
 void ping_reset_sys(void) {
     syscall_invoke(SYS_PING_RESET, 0, 0, 0);
+}
+
+__attribute__((used))
+int arp_request_sys(uint32_t ip) {
+    return syscall_invoke(SYS_ARP_REQUEST, ip, 0, 0);
+}
+
+__attribute__((used))
+int arp_lookup_sys(uint32_t ip, uint8_t* mac) {
+    return syscall_invoke(SYS_ARP_LOOKUP, ip, (int)mac, 0);
+}
+
+__attribute__((used))
+void arp_print_table_sys(void) {
+    syscall_invoke(SYS_ARP_PRINT, 0, 0, 0);
+}
+
+__attribute__((used))
+int get_net_status_sys(net_status_t* status) {
+    return syscall_invoke(SYS_NET_STATUS, (int)status, 0, 0);
 }

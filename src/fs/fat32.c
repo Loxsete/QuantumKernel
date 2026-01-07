@@ -1,3 +1,4 @@
+#include "fs/vfs.h"
 #include "fs/fat32.h"
 #include "drivers/ata.h"
 #include "drivers/terminal.h"
@@ -8,6 +9,9 @@
 static fat32_fs_t g_fs;
 static uint8_t sector_buffer[FAT32_SECTOR_SIZE];
 static uint8_t cluster_buffer[128 * FAT32_SECTOR_SIZE]; 
+vfs_ops_t* fat32_get_ops(void);
+
+
 
 static uint32_t fat32_read_fat(uint32_t cluster) {
     if (cluster < 2 || cluster >= g_fs.total_clusters + 2)
@@ -807,4 +811,50 @@ int fat32_chdir(const char* path) {
     g_current_dir_cluster = ((uint32_t)entry.first_cluster_high << 16) | 
                             entry.first_cluster_low;
     return 0;
+}
+
+
+static int fat_vfs_open(const char* path, vfs_file_t* out, uint32_t flags) {
+    fat32_file_t* f = malloc(sizeof(fat32_file_t));
+    if (!f)
+        return -1;
+
+    if (fat32_open(f, path, flags) != 0) {
+        free(f);
+        return -1;
+    }
+
+    out->fs_data = f;
+    out->ops = fat32_get_ops();   
+    out->pos = 0;
+    out->flags = flags;
+
+    return 0;
+}
+
+
+static int fat_vfs_read(vfs_file_t* file, void* buf, uint32_t size) {
+    return fat32_read((fat32_file_t*)file->fs_data, buf, size);
+}
+
+static int fat_vfs_write(vfs_file_t* file, const void* buf, uint32_t size) {
+    return fat32_write((fat32_file_t*)file->fs_data, buf, size);
+}
+
+static int fat_vfs_close(vfs_file_t* file) {
+    fat32_close((fat32_file_t*)file->fs_data);
+    free(file->fs_data);
+    return 0;
+}
+
+static vfs_ops_t fat_ops = {
+    .open = fat_vfs_open,
+    .read = fat_vfs_read,
+    .write = fat_vfs_write,
+    .close = fat_vfs_close,
+    .readdir = 0
+};
+
+vfs_ops_t* fat32_get_ops(void) {
+    return &fat_ops;
 }

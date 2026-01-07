@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 #include "lib/stddef.h"
+#include "fs/vfs.h"
 
 #define FAT32_SECTOR_SIZE 512
 #define FAT32_MAX_PATH 260
@@ -174,6 +175,7 @@ int fat32_stat(const char* path, fat32_file_info_t* info);
 void fat32_list_dir(const char* path);
 void fat32_print_info(void);
 uint32_t fat32_get_root_cluster(void); 
+vfs_ops_t* fat32_get_ops(void);
 
 extern uint32_t g_current_dir_cluster;
 int fat32_chdir(const char* path);           
