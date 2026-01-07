@@ -11,7 +11,6 @@
 #include "drivers/net/icmp.h"
 #include "drivers/net/arp.h"
 #include "drivers/net/ethernet.h"
-#include "fs/vfs.h"
 
 typedef struct regs {
     uint32_t edi, esi, ebp, esp;
@@ -299,12 +298,16 @@ void syscall_dispatch(regs_t* r) {
 
         case SYS_OPEN: {
             const char* path = (const char*)r->ebx;
+            int flags = r->ecx;
+            
             int fd = alloc_fd();
             if (fd < 0) {
                 r->eax = -1;
                 break;
             }
-            if (vfs_open(path, (vfs_file_t*)&file_table[fd], r->ecx) != 0) {
+            
+            int result = fat32_open(&file_table[fd], path, (uint8_t)flags);
+            if (result != 0) {
                 free_fd(fd);
                 r->eax = -1;
             } else {
