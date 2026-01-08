@@ -19,6 +19,7 @@ global irq15_handler
 
 extern timer_callback
 extern keyboard_irq
+extern rtl8139_irq_handler
 
 irq0_handler:
     pushad
@@ -124,10 +125,24 @@ irq9_handler:
 
 irq10_handler:
     pushad
+    push ds
+    push es
+    push fs
+    push gs
+    mov ax, 0x10
+    mov ds, ax
+    mov es, ax
+    mov fs, ax
+    mov gs, ax
+    call rtl8139_irq_handler
     mov al, 0x20
     out 0xA0, al
     mov al, 0x20
     out 0x20, al
+    pop gs
+    pop fs
+    pop es
+    pop ds
     popad
     iret
 

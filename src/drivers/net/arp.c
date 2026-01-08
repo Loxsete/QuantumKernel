@@ -193,3 +193,13 @@ void arp_print_table(void) {
     }
     term_puts("=================\n\n");
 }
+
+int arp_get_entry_by_index(int index, uint32_t* ip, uint8_t* mac, int* valid) {
+    if (index < 0 || index >= ARP_TABLE_SIZE) {
+        return -1;
+    }
+    *ip = arp_table[index].ip;
+    memcpy(mac, arp_table[index].mac, 6);
+    *valid = arp_table[index].valid;
+    return 0;
+}

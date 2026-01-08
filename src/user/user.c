@@ -102,6 +102,8 @@ void user_main(void) {
                 " arp [show|request <ip>]\n"
                 " netstat\n"
                 " testnet\n"
+                " rxpoll - manually check for RX packets\n"
+                " rtldump - dump RTL8139 registers\n"
             );
         }
 
@@ -359,7 +361,29 @@ void user_main(void) {
         else if (!strcmp(cmd, "arp")) {
             char* subcmd = next_token(&p);
             if (!subcmd || !strcmp(subcmd, "show")) {
-                arp_print_table_sys();
+                puts("\n=== ARP Table ===\n");
+                int count = 0;
+                for (int i = 0; i < 16; i++) {
+                    arp_entry_sys_t entry;
+                    if (arp_get_entry_sys(i, &entry) == 0 && entry.valid) {
+                        char xbuf[16];
+                        puts("IP: ");
+                        itoa(entry.ip, xbuf, 10);
+                        puts(xbuf);
+                        puts(" -> MAC: ");
+                        for (int j = 0; j < 6; j++) {
+                            itoa(entry.mac[j], xbuf, 16);
+                            puts(xbuf);
+                            if (j < 5) puts(":");
+                        }
+                        puts("\n");
+                        count++;
+                    }
+                }
+                if (count == 0) {
+                    puts("(empty)\n");
+                }
+                puts("=================\n\n");
             }
             else if (!strcmp(subcmd, "request")) {
                 char* ip_str = next_token(&p);
@@ -371,8 +395,34 @@ void user_main(void) {
                     puts("ARP request sent\n");
                 }
             }
+            else if (!strcmp(subcmd, "add")) {
+                char* ip_str = next_token(&p);
+                if (!ip_str) {
+                    puts("usage: arp add <ip> <mac1> <mac2> <mac3> <mac4> <mac5> <mac6>\n");
+                    puts("example: arp add 167772673 82 84 0 18 52 86\n");
+                    puts("QEMU gateway MAC is always: 52:54:00:12:34:56\n");
+                } else {
+                    uint32_t ip = atoi(ip_str);
+                    uint8_t mac[6];
+                    int valid = 1;
+                    for (int i = 0; i < 6; i++) {
+                        char* mac_byte = next_token(&p);
+                        if (!mac_byte) {
+                            puts("ERROR: need 6 MAC bytes (decimal)\n");
+                            puts("example: arp add 167772673 82 84 0 18 52 86\n");
+                            valid = 0;
+                            break;
+                        }
+                        mac[i] = atoi(mac_byte);
+                    }
+                    if (valid) {
+                        arp_add_sys(ip, mac);
+                        puts("ARP entry added\n");
+                    }
+                }
+            }
             else {
-                puts("usage: arp [show|request <ip>]\n");
+                puts("usage: arp [show|request <ip>|add <ip> <mac bytes>]\n");
             }
         }
 

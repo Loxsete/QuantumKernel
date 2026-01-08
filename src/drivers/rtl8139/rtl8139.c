@@ -5,6 +5,7 @@
 #include "drivers/net/ethernet.h"
 #include "lib/libc.h"
 #include "mm/kmalloc.h"
+#include "drivers/pic.h"
 
 #define REG_MAC         0x00
 #define REG_TXSTATUS0   0x10
@@ -27,7 +28,7 @@
 #define ISR_TOK         0x0004
 #define ISR_TXERR       0x0008
 
-static uint32_t io_base = 0;
+uint32_t io_base = 0;
 static uint8_t irq_line;
 static uint32_t rx_buffer_phys;
 static uint32_t tx_buffer_phys[4];
@@ -58,10 +59,28 @@ void rtl8139_send(void *data, uint16_t len) {
         return;
     }
     
-    memcpy((void*)tx_buffer_phys[tx], data, len);
+    if (len < 60) {
+        term_puts("[RTL8139] Padding packet to 60 bytes\n");
+        memcpy((void*)tx_buffer_phys[tx], data, len);
+        memset((void*)(tx_buffer_phys[tx] + len), 0, 60 - len);
+        len = 60;
+    } else {
+        memcpy((void*)tx_buffer_phys[tx], data, len);
+    }
     
-    uint32_t status = len & 0x1FFF;
-    outl(io_base + REG_TXSTATUS0 + tx * 4, status);
+    uint32_t status = inl(io_base + REG_TXSTATUS0 + tx * 4);
+    term_puts("[RTL8139] TX status before: ");
+    itoa(status, buf, 16);
+    term_puts(buf);
+    term_puts("\n");
+    
+    outl(io_base + REG_TXSTATUS0 + tx * 4, len & 0x1FFF);
+    
+    status = inl(io_base + REG_TXSTATUS0 + tx * 4);
+    term_puts("[RTL8139] TX status after: ");
+    itoa(status, buf, 16);
+    term_puts(buf);
+    term_puts("\n");
     
     tx = (tx + 1) & 3;
 }

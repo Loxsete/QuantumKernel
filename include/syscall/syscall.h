@@ -30,6 +30,8 @@
 #define SYS_ARP_LOOKUP  26
 #define SYS_ARP_PRINT   27
 #define SYS_NET_STATUS  28
+#define SYS_ARP_ADD     29
+#define SYS_ARP_GET_ENTRY 30
 
 typedef struct {
     uint32_t ip;
@@ -42,6 +44,12 @@ typedef struct {
     uint32_t tx_errors;
     uint32_t rx_errors;
 } net_status_t;
+
+typedef struct {
+    uint32_t ip;
+    uint8_t mac[6];
+    int valid;
+} arp_entry_sys_t;
 
 int write(int fd, const char* buf, uint32_t len);
 int read(int fd, char* buf, uint32_t len);
@@ -68,5 +76,9 @@ int arp_request_sys(uint32_t ip);
 int arp_lookup_sys(uint32_t ip, uint8_t* mac);
 void arp_print_table_sys(void);
 int get_net_status_sys(net_status_t* status);
+int arp_add_sys(uint32_t ip, uint8_t* mac);
+
+
+int arp_get_entry_sys(int index, arp_entry_sys_t* entry);
 
 #endif

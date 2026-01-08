@@ -12,6 +12,8 @@
 #include "drivers/net/arp.h"
 #include "drivers/net/ethernet.h"
 
+
+
 typedef struct regs {
     uint32_t edi, esi, ebp, esp;
     uint32_t ebx, edx, ecx, eax;
@@ -265,8 +267,35 @@ void syscall_dispatch(regs_t* r) {
         }
 
         case SYS_ARP_PRINT: {
-            arp_print_table_sys();
+            extern void arp_print_table(void);
+            arp_print_table();
             r->eax = 0;
+            break;
+        }
+
+        case SYS_ARP_ADD: {
+            uint32_t ip = r->ebx;
+            uint8_t* mac = (uint8_t*)r->ecx;
+            if (!mac) {
+                r->eax = -1;
+                break;
+            }
+            extern void arp_add_entry(uint32_t ip, uint8_t *mac);
+            arp_add_entry(ip, mac);
+            r->eax = 0;
+            break;
+        }
+
+        case SYS_ARP_GET_ENTRY: {
+            int index = r->ebx;
+            arp_entry_sys_t* entry = (arp_entry_sys_t*)r->ecx;
+            if (!entry || index < 0 || index >= 16) {
+                r->eax = -1;
+                break;
+            }
+            extern int arp_get_entry_by_index(int index, uint32_t* ip, uint8_t* mac, int* valid);
+            int result = arp_get_entry_by_index(index, &entry->ip, entry->mac, &entry->valid);
+            r->eax = result;
             break;
         }
 
@@ -299,13 +328,11 @@ void syscall_dispatch(regs_t* r) {
         case SYS_OPEN: {
             const char* path = (const char*)r->ebx;
             int flags = r->ecx;
-            
             int fd = alloc_fd();
             if (fd < 0) {
                 r->eax = -1;
                 break;
             }
-            
             int result = fat32_open(&file_table[fd], path, (uint8_t)flags);
             if (result != 0) {
                 free_fd(fd);
@@ -448,4 +475,14 @@ void arp_print_table_sys(void) {
 __attribute__((used))
 int get_net_status_sys(net_status_t* status) {
     return syscall_invoke(SYS_NET_STATUS, (int)status, 0, 0);
+}
+
+__attribute__((used))
+int arp_add_sys(uint32_t ip, uint8_t* mac) {
+    return syscall_invoke(SYS_ARP_ADD, ip, (int)mac, 0);
+}
+
+__attribute__((used))
+int arp_get_entry_sys(int index, arp_entry_sys_t* entry) {
+    return syscall_invoke(SYS_ARP_GET_ENTRY, index, (int)entry, 0);
 }
