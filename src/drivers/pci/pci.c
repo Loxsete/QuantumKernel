@@ -146,3 +146,13 @@ void pci_register_drivers(void) {
         }
     }
 }
+
+uint16_t pci_find_device(uint16_t vendor_id, uint16_t device_id) {
+    for (int i = 0; i < pci_device_count; i++) {
+        if (pci_devices[i].vendor_id == vendor_id && 
+            pci_devices[i].device_id == device_id) {
+            return (pci_devices[i].bus << 8) | pci_devices[i].device;
+        }
+    }
+    return 0xFFFF;
+}

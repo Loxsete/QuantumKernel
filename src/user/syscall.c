@@ -2,6 +2,7 @@
 #include "drivers/terminal.h"
 #include "drivers/keyboard.h"
 #include "drivers/timer.h"
+#include "drivers/power.h"
 #include "syscall/syscall.h"
 #include "syscall/syscall_raw.h"
 #include "drivers/ata.h"
@@ -342,7 +343,22 @@ void syscall_dispatch(regs_t* r) {
             }
             break;
         }
-        
+
+		case SYS_REBOOT:
+            term_puts("\nRebooting system...\n");
+            power_reboot();
+            break;
+            
+        case SYS_SHUTDOWN:
+            term_puts("\nShutting down...\n");
+            power_shutdown();
+            break;
+            
+        case SYS_HALT:
+            term_puts("\nSystem halted.\n");
+            power_halt();
+            break;
+
         default:
             term_puts("[unknown syscall]\n");
             r->eax = -1;
@@ -485,4 +501,19 @@ int arp_add_sys(uint32_t ip, uint8_t* mac) {
 __attribute__((used))
 int arp_get_entry_sys(int index, arp_entry_sys_t* entry) {
     return syscall_invoke(SYS_ARP_GET_ENTRY, index, (int)entry, 0);
+}
+
+__attribute__((used))
+void reboot_sys(void) {
+    syscall_invoke(SYS_REBOOT, 0, 0, 0);
+}
+
+__attribute__((used))
+void shutdown_sys(void) {
+    syscall_invoke(SYS_SHUTDOWN, 0, 0, 0);
+}
+
+__attribute__((used))
+void halt_sys(void) {
+    syscall_invoke(SYS_HALT, 0, 0, 0);
 }

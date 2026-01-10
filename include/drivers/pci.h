@@ -39,6 +39,7 @@ uint8_t pci_config_read_byte(uint8_t bus, uint8_t device, uint8_t func, uint8_t 
 void pci_config_write_dword(uint8_t bus, uint8_t device, uint8_t func, uint8_t offset, uint32_t data);
 void pci_config_write_word(uint8_t bus, uint8_t device, uint8_t func, uint8_t offset, uint16_t data);
 void pci_config_write_byte(uint8_t bus, uint8_t device, uint8_t func, uint8_t offset, uint8_t data);
+uint16_t pci_find_device(uint16_t vendor_id, uint16_t device_id);
 
 void pci_enumerate(void);
 void pci_register_drivers(void);

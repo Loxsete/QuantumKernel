@@ -84,7 +84,7 @@ echo "${BLUE}[*] Disk: $DISK_IMG${NC}"
 echo ""
 
 echo "${BLUE}[*] Running QEMU${NC}"
-qemu-system-i386 \
+qemu-system-x86_64 \
     -vga std \
     -boot d \
     -cdrom "$ISO_IMG" \

@@ -2,6 +2,7 @@
 #include "lib/libc.h"
 #include "lib/string.h"
 #include "lib/rtc.h"
+#include "drivers/pci.h"
 #include <stdint.h>
 
 #define BUF_SIZE 256
@@ -81,7 +82,7 @@ void user_main(void) {
         char* p = buf;
         char* cmd = next_token(&p);
 
-        if (!strcmp(cmd, "help")) {
+		if (!strcmp(cmd, "help")) {
             puts(
                 "Commands:\n"
                 " help\n"
@@ -102,12 +103,54 @@ void user_main(void) {
                 " arp [show|request <ip>]\n"
                 " netstat\n"
                 " testnet\n"
-                
+                " reboot\n"
+                " poweroff\n"
+                " halt\n"
             );
         }
 
-        else if (!strcmp(cmd, "clear")) {
-            clear();
+        else if (!strcmp(cmd, "reboot")) {
+            puts("Rebooting system in 2 seconds...\n");
+            puts("Press Ctrl+C to cancel...\n");
+            sleep_sys(2000);
+            reboot_sys();
+        }
+
+        else if (!strcmp(cmd, "poweroff") || !strcmp(cmd, "shutdown")) {
+            puts("System will power off. Are you sure? (y/n): ");
+            char confirm[4];
+            int pos = 0;
+            while (1) {
+                char c;
+                if (read(0, &c, 1) <= 0) continue;
+                if (c == '\n' || c == '\r') {
+                    confirm[pos] = 0;
+                    break;
+                }
+                if (pos < 3) {
+                    confirm[pos++] = c;
+                    write(1, &c, 1);
+                }
+            }
+            puts("\n");
+            if (confirm[0] == 'y' || confirm[0] == 'Y') {
+                puts("Syncing filesystems...\n");
+                sleep_sys(500);
+                puts("Sending SIGTERM to all processes...\n");
+                sleep_sys(500);
+                puts("Sending SIGKILL to all processes...\n");
+                sleep_sys(500);
+                puts("Powering off...\n");
+                sleep_sys(1000);
+                shutdown_sys();
+            } else {
+                puts("Power off cancelled\n");
+            }
+        }
+
+        else if (!strcmp(cmd, "halt")) {
+            puts("System halted. You can now turn off the computer.\n");
+            halt_sys();
         }
 
         else if (!strcmp(cmd, "cat")) {

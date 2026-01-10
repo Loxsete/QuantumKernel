@@ -1,7 +1,6 @@
 #ifndef SYSCALL_H
 #define SYSCALL_H
 #include <stdint.h>
-
 #define SYS_WRITE      1
 #define SYS_READ       2
 #define SYS_EXIT       3
@@ -32,7 +31,9 @@
 #define SYS_NET_STATUS  28
 #define SYS_ARP_ADD     29
 #define SYS_ARP_GET_ENTRY 30
-
+#define SYS_REBOOT     31
+#define SYS_SHUTDOWN   32
+#define SYS_HALT       33
 typedef struct {
     uint32_t ip;
     uint32_t gateway;
@@ -44,13 +45,11 @@ typedef struct {
     uint32_t tx_errors;
     uint32_t rx_errors;
 } net_status_t;
-
 typedef struct {
     uint32_t ip;
     uint8_t mac[6];
     int valid;
 } arp_entry_sys_t;
-
 int write(int fd, const char* buf, uint32_t len);
 int read(int fd, char* buf, uint32_t len);
 void exit(void);
@@ -77,8 +76,8 @@ int arp_lookup_sys(uint32_t ip, uint8_t* mac);
 void arp_print_table_sys(void);
 int get_net_status_sys(net_status_t* status);
 int arp_add_sys(uint32_t ip, uint8_t* mac);
-
-
 int arp_get_entry_sys(int index, arp_entry_sys_t* entry);
-
+void reboot_sys(void);
+void shutdown_sys(void);
+void halt_sys(void);
 #endif

@@ -1,4 +1,5 @@
 #include "drivers/timer.h"
+#include "drivers/terminal.h"
 #include "drivers/io.h"
 #include <stdint.h>
 
@@ -11,6 +12,8 @@ static uint32_t timer_frequency = 0;
 
 void timer_callback(void) {
     ticks++;
+    draw_mouse();
+    
 }
 
 uint32_t get_tick_count(void) {

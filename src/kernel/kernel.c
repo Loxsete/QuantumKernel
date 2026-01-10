@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include "drivers/power.h"
 #include "drivers/terminal.h"
 #include "kernel/multiboot.h"
 #include "cpu/idt.h"
@@ -18,6 +19,8 @@
 #include "drivers/net/arp.h"
 #include "drivers/net/ip.h"
 #include "drivers/rtl8139.h"
+#include "drivers/mouse.h"
+
 
 static void boot_step(const char *name)
 {
@@ -134,11 +137,24 @@ void kernel_main(uint32_t magic, uint32_t mb_addr)
     pci_register_drivers();
     boot_ok();
 
+	boot_step("acpi");
+    acpi_init();
+    if (acpi_is_available())
+        boot_ok();
+    else {
+        term_puts("[ WARN ]\n");
+    }
+
     boot_step("net");
     eth_init(mac_addr);
     arp_init(0x0A01A8C0);
     ip_init(0x0A01A8C0);
     boot_ok();
+
+    boot_step("mouse");
+    mouse_init();
+    boot_ok();
+    
 
     boot_step("interrupts");
     asm volatile("sti");
