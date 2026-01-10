@@ -102,8 +102,7 @@ void user_main(void) {
                 " arp [show|request <ip>]\n"
                 " netstat\n"
                 " testnet\n"
-                " rxpoll - manually check for RX packets\n"
-                " rtldump - dump RTL8139 registers\n"
+                
             );
         }
 

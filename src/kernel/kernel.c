@@ -1,6 +1,7 @@
 #include <stdint.h>
-#include "cpu/idt.h"
 #include "drivers/terminal.h"
+#include "kernel/multiboot.h"
+#include "cpu/idt.h"
 #include "drivers/pic.h"
 #include "cpu/gdt.h"
 #include "syscall/syscall.h"
@@ -18,7 +19,8 @@
 #include "drivers/net/ip.h"
 #include "drivers/rtl8139.h"
 
-static void boot_step(const char *name) {
+static void boot_step(const char *name)
+{
     term_puts("-> ");
     term_puts(name);
     int len = strlen(name);
@@ -26,20 +28,49 @@ static void boot_step(const char *name) {
         term_putc(' ');
 }
 
-static void boot_ok(void) {
+static void boot_ok(void)
+{
     term_puts("[ OK ]\n");
 }
 
-static void boot_fail(void) {
+static void boot_fail(void)
+{
     term_puts("[ FAIL ]\n");
     term_puts("kernel panic: fatal error\n");
     asm volatile("cli");
-    while (1)
+    for (;;)
         asm volatile("hlt");
 }
 
-void kernel_main(void) {
-    term_init();
+void kernel_main(uint32_t magic, uint32_t mb_addr)
+{
+    if (magic != 0x2BADB002)
+        boot_fail();
+    
+    multiboot_info_t *mbi = (multiboot_info_t*)mb_addr;
+    int fb_ok = 0;
+    
+    if (
+        (mbi->flags & (1 << 12)) &&
+        mbi->framebuffer_type == 1 &&
+        (mbi->framebuffer_bpp == 24 || mbi->framebuffer_bpp == 32) &&
+        mbi->framebuffer_addr != 0 &&
+        mbi->framebuffer_pitch != 0
+    )
+    {
+        term_init_fb(
+            (uint32_t)mbi->framebuffer_addr,
+            mbi->framebuffer_width,
+            mbi->framebuffer_height,
+            mbi->framebuffer_pitch,
+            mbi->framebuffer_bpp
+        );
+        fb_ok = 1;
+    }
+    
+    if (!fb_ok)
+        term_init();
+
     term_puts("QuantumKernel booting...\n\n");
 
     boot_step("gdt");
@@ -61,7 +92,8 @@ void kernel_main(void) {
     boot_step("ata");
     ata_init();
     ata_error_t err = ata_identify();
-    if (err != ATA_OK) {
+    if (err != ATA_OK)
+    {
         term_puts("[FAIL] ");
         term_puts(ata_error_str(err));
         term_putc('\n');
@@ -114,7 +146,7 @@ void kernel_main(void) {
 
     term_puts("\nSystem ready.\n");
     term_puts("Starting init...\n\n");
-
     enter_user();
+
     boot_fail();
 }

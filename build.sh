@@ -2,14 +2,19 @@
 set -e
 
 BUILD_DIR=build
+ISO_DIR=iso
 DISK_IMG="$BUILD_DIR/disk.img"
+ISO_IMG="$BUILD_DIR/QuantumKernel.iso"
+
 ARCH=i386
 CC=gcc
 LD=ld
 AS=nasm
+
 CFLAGS="-ffreestanding -nostdlib -fno-builtin -fno-stack-protector -Wall -Wextra -Werror -Iinclude -m32"
 ASFLAGS="-f elf32"
 LDFLAGS="-m elf_i386"
+
 SRC_DIRS="src/kernel src/cpu src/drivers src/mm src/user src/syscall src/lib src/fs src/errors src/drivers/pci src/drivers/rtl8139 src/drivers/net"
 
 GREEN='\033[0;32m'
@@ -17,79 +22,72 @@ BLUE='\033[0;34m'
 YELLOW='\033[1;33m'
 NC='\033[0m'
 
-echo "${BLUE}[*] Cleaning build directory${NC}"
-rm -rf "$BUILD_DIR"/*.o
+echo "${BLUE}[*] Cleaning${NC}"
+rm -rf "$BUILD_DIR" "$ISO_DIR"
+mkdir -p "$BUILD_DIR" "$ISO_DIR"
 
-echo "${BLUE}[*] Creating build directory${NC}"
-mkdir -p "$BUILD_DIR"
-
-echo "${BLUE}[*] Assembling ASM files${NC}"
+echo "${BLUE}[*] Assembling ASM${NC}"
 for dir in $SRC_DIRS; do
-    if [ -d "$dir" ]; then
-        for file in "$dir"/*.asm; do
-            if [ -f "$file" ]; then
-                obj="$BUILD_DIR/$(basename "$file" .asm).o"
-                echo "    ${GREEN}AS${NC} $file"
-                $AS $ASFLAGS "$file" -o "$obj"
-            fi
-        done
-    fi
+    [ -d "$dir" ] || continue
+    for file in "$dir"/*.asm; do
+        [ -f "$file" ] || continue
+        obj="$BUILD_DIR/$(basename "$file" .asm).o"
+        echo "    ${GREEN}AS${NC} $file"
+        $AS $ASFLAGS "$file" -o "$obj"
+    done
 done
 
-echo "${BLUE}[*] Compiling C files${NC}"
+echo "${BLUE}[*] Compiling C${NC}"
 for dir in $SRC_DIRS; do
-    if [ -d "$dir" ]; then
-        for file in "$dir"/*.c; do
-            if [ -f "$file" ]; then
-                obj="$BUILD_DIR/$(basename "$file" .c).o"
-                echo "    ${GREEN}CC${NC} $file"
-                $CC $CFLAGS -c "$file" -o "$obj"
-            fi
-        done
-    fi
+    [ -d "$dir" ] || continue
+    for file in "$dir"/*.c; do
+        [ -f "$file" ] || continue
+        obj="$BUILD_DIR/$(basename "$file" .c).o"
+        echo "    ${GREEN}CC${NC} $file"
+        $CC $CFLAGS -c "$file" -o "$obj"
+    done
 done
 
-echo "${BLUE}[*] Linking kernel${NC}"
+echo "${BLUE}[*] Linking kernel ELF${NC}"
 $LD $LDFLAGS -T src/kernel/link.ld \
     "$BUILD_DIR"/*.o \
-    -o "$BUILD_DIR/kernel.bin"
+    -o "$BUILD_DIR/kernel.elf"
 
-echo "${BLUE}[*] Creating disk image${NC}"
-if [ ! -f "$DISK_IMG" ]; then
-    echo "    ${YELLOW}Creating new 16MB disk: $DISK_IMG${NC}"
-    dd if=/dev/zero of="$DISK_IMG" bs=1M count=16 2>/dev/null
-else
-    echo "    ${YELLOW}Using existing disk: $DISK_IMG${NC}"
-fi
-
-echo "${BLUE}[*] Formatting disk as FAT32${NC}"
+echo "${BLUE}[*] Creating FAT32 disk${NC}"
+dd if=/dev/zero of="$DISK_IMG" bs=1M count=16 2>/dev/null
 mkfs.fat -F 32 "$DISK_IMG"
 
-echo "${BLUE}[*] Writing text.txt to disk image${NC}"
-echo "#!/bin/sh
-echo Hello from FAT32
-echo Kernel test file
-" > "$BUILD_DIR/text.txt"
-mcopy -i "$DISK_IMG" "$BUILD_DIR/text.txt" ::text.txt
-
-echo "${BLUE}[*] Writing tz.txt to disk image${NC}"
+echo "${BLUE}[*] Writing files to FAT32${NC}"
 echo "UTC+3" > "$BUILD_DIR/tz.txt"
 mcopy -i "$DISK_IMG" "$BUILD_DIR/tz.txt" ::tz.txt
 
-echo "${GREEN}[✓] Build complete!${NC}"
-echo ""
-echo "${BLUE}[*] Disk image: $DISK_IMG (16MB)${NC}"
-echo "${BLUE}[*] Kernel: $BUILD_DIR/kernel.bin${NC}"
-echo ""
-echo "${BLUE}[*] Running QEMU with disk${NC}"
-echo "${YELLOW}Network: User-mode (10.0.2.0/24)${NC}"
-echo "${YELLOW}  Your IP: 10.0.2.15 (167772687)${NC}"
-echo "${YELLOW}  Gateway: 10.0.2.2 (167772674)${NC}"
-echo "${YELLOW}  Use: netinit 167772687 167772674 4294967040${NC}"
+echo "${BLUE}[*] Preparing GRUB ISO${NC}"
+mkdir -p "$ISO_DIR/boot/grub"
+cp "$BUILD_DIR/kernel.elf" "$ISO_DIR/boot/kernel.elf"
+
+cat > "$ISO_DIR/boot/grub/grub.cfg" << EOF
+set timeout=0
+set default=0
+
+menuentry "QuantumKernel" {
+    multiboot /boot/kernel.elf
+    set gfxpayload=1024x768x32
+    boot
+}
+EOF
+
+grub-mkrescue -o "$ISO_IMG" "$ISO_DIR" >/dev/null 2>&1
+
+echo "${GREEN}[✓] Build complete${NC}"
+echo "${BLUE}[*] ISO: $ISO_IMG${NC}"
+echo "${BLUE}[*] Disk: $DISK_IMG${NC}"
 echo ""
 
-qemu-system-x86_64 \
-    -kernel "$BUILD_DIR/kernel.bin" \
+echo "${BLUE}[*] Running QEMU${NC}"
+qemu-system-i386 \
+    -vga std \
+    -boot d \
+    -cdrom "$ISO_IMG" \
     -hda "$DISK_IMG" \
     -m 128M \
     -netdev user,id=net0 \
