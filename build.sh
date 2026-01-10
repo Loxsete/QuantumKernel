@@ -61,6 +61,10 @@ echo "${BLUE}[*] Writing files to FAT32${NC}"
 echo "UTC+3" > "$BUILD_DIR/tz.txt"
 mcopy -i "$DISK_IMG" "$BUILD_DIR/tz.txt" ::tz.txt
 
+echo "Type help to view commands, thanks for download <3" > "$BUILD_DIR/help.txt"
+mcopy -i "$DISK_IMG" "$BUILD_DIR/help.txt" ::help.txt
+
+
 echo "${BLUE}[*] Preparing GRUB ISO${NC}"
 mkdir -p "$ISO_DIR/boot/grub"
 cp "$BUILD_DIR/kernel.elf" "$ISO_DIR/boot/kernel.elf"

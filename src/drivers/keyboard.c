@@ -8,6 +8,12 @@ static char kbd_buf[KBD_BUF_SIZE];
 static uint32_t kbd_head = 0;
 static uint32_t kbd_tail = 0;
 
+#define KEY_UP    0x80
+#define KEY_DOWN  0x81
+#define KEY_LEFT  0x82
+#define KEY_RIGHT 0x83
+
+
 static void kbd_push(char c);
 int kbd_pop(void);
 
@@ -22,18 +28,37 @@ static char keymap[128] = {
     0,    ' ',  
 };
 
+static int extended = 0;
+
 void keyboard_irq(void) {
-    uint8_t scancode = inb(KBD_DATA);
-    
-    if (scancode & 0x80) 
+    uint8_t sc = inb(0x60);
+
+    if (sc == 0xE0) {
+        extended = 1;
         return;
-    
-    if (scancode < 128) {
-        char c = keymap[scancode];
-        if (c) 
-            kbd_push(c);
     }
+
+    if (sc & 0x80) {
+        extended = 0;
+        return;
+    }
+
+    if (extended) {
+        switch (sc) {
+            case 0x48: kbd_push(KEY_UP); break;
+            case 0x50: kbd_push(KEY_DOWN); break;
+            case 0x4B: kbd_push(KEY_LEFT); break;
+            case 0x4D: kbd_push(KEY_RIGHT); break;
+        }
+        extended = 0;
+        return;
+    }
+
+    char c = keymap[sc];
+    if (c)
+        kbd_push(c);
 }
+
 
 static void kbd_push(char c) {
     uint32_t next = (kbd_head + 1) % KBD_BUF_SIZE;

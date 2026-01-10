@@ -1,6 +1,7 @@
 #include <stdint.h>
 #include <stddef.h>
 #include "drivers/font.h"
+#include "drivers/terminal.h"
 #include "drivers/mouse.h"
 
 static uint8_t *fb;
@@ -10,6 +11,13 @@ static uint32_t fb_pitch;
 static uint32_t fb_bpp;
 static uint32_t cursor_x;
 static uint32_t cursor_y;
+
+
+
+static uint32_t term_fg = TERM_COLOR_FG;
+static uint32_t term_bg = TERM_COLOR_BG;
+
+
 
 #define CURSOR_SIZE 11
 static uint32_t cursor_buffer[CURSOR_SIZE * CURSOR_SIZE];
@@ -58,18 +66,20 @@ uint32_t getpixel(uint32_t x, uint32_t y)
 static void draw_char(char ch, uint32_t x, uint32_t y)
 {
     const uint8_t *glyph = (const uint8_t*)font8x8_basic[(uint8_t)ch];
+
     for (uint32_t row = 0; row < FONT_HEIGHT; row++)
     {
         uint8_t line = glyph[row];
         for (uint32_t col = 0; col < FONT_WIDTH; col++)
         {
-            if (line & (1 << col))   
-                putpixel(x + col, y + row, 0x00FFFFFF);
+            if (line & (1 << col))
+                putpixel(x + col, y + row, term_fg);
             else
-                putpixel(x + col, y + row, 0x00000000); 
+                putpixel(x + col, y + row, term_bg);
         }
     }
 }
+
 
 void term_putc(char c)
 {
@@ -123,15 +133,19 @@ void term_clear(void)
 {
     for (uint32_t y = 0; y < fb_height; y++)
     {
-        uint8_t *row = fb + y * fb_pitch;
-        for (uint32_t x = 0; x < fb_width * (fb_bpp / 8); x++)
-            row[x] = 0;
+        for (uint32_t x = 0; x < fb_width; x++)
+        {
+            putpixel(x, y, TERM_COLOR_BG);
+        }
     }
+
     cursor_x = 0;
     cursor_y = 0;
     last_mouse_x = -1;
     last_mouse_y = -1;
 }
+
+
 
 void term_init_fb(uint32_t addr, uint32_t w, uint32_t h, uint32_t pitch, uint32_t bpp)
 {
@@ -216,4 +230,14 @@ void draw_mouse()
     
     last_mouse_x = mouse_x;
     last_mouse_y = mouse_y;
+}
+
+void term_set_color(uint32_t fg)
+{
+    term_fg = fg;
+}
+
+void term_reset_color(void)
+{
+    term_fg = TERM_COLOR_FG;
 }

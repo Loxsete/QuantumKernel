@@ -61,15 +61,18 @@ void syscall_dispatch(regs_t* r) {
             char* buf = (char*)r->ebx;
             uint32_t len = r->ecx;
             uint32_t i = 0;
+        
             while (i < len) {
                 int c = kbd_pop();
                 if (c < 0)
                     break;
                 buf[i++] = (char)c;
             }
+        
             r->eax = i;
             break;
         }
+        
         
         case SYS_EXIT:
             term_puts("\n[process exited]\n");

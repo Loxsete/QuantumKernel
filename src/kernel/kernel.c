@@ -22,6 +22,8 @@
 #include "drivers/mouse.h"
 
 
+
+
 static void boot_step(const char *name)
 {
     term_puts("-> ");
@@ -33,17 +35,23 @@ static void boot_step(const char *name)
 
 static void boot_ok(void)
 {
+    term_set_color(TERM_COLOR_OK);
     term_puts("[ OK ]\n");
+    term_reset_color();
 }
 
 static void boot_fail(void)
 {
+    term_set_color(TERM_COLOR_FAIL);
     term_puts("[ FAIL ]\n");
+    term_reset_color();
+
     term_puts("kernel panic: fatal error\n");
     asm volatile("cli");
     for (;;)
         asm volatile("hlt");
 }
+
 
 void kernel_main(uint32_t magic, uint32_t mb_addr)
 {

@@ -399,7 +399,10 @@ void user_main(void) {
                 }
             }
         }
-
+		else if (!strcmp(cmd, "clear")) {
+		    clear();           
+		}
+		
         else if (!strcmp(cmd, "arp")) {
             char* subcmd = next_token(&p);
             if (!subcmd || !strcmp(subcmd, "show")) {
@@ -581,3 +584,4 @@ void user_main(void) {
         prompt();
     }
 }
+

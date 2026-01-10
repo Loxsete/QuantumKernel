@@ -1,12 +1,11 @@
 #include <stdint.h>
 #include "drivers/power.h"
-#include "drivers/pci.h"
 #include "drivers/io.h"
-
+#include "drivers/terminal.h"
 
 
 typedef struct {
-    char signature[8];
+    char signature[8];     // "RSD PTR "
     uint8_t checksum;
     char oem_id[6];
     uint8_t revision;
@@ -16,18 +15,11 @@ typedef struct {
 typedef struct {
     char signature[4];
     uint32_t length;
-    uint8_t revision;
-    uint8_t checksum;
-    char oem_id[6];
-    char oem_table_id[8];
-    uint32_t oem_revision;
-    uint32_t creator_id;
-    uint32_t creator_revision;
 } __attribute__((packed)) acpi_header_t;
 
 typedef struct {
     acpi_header_t header;
-    uint32_t tables[];
+    uint32_t entries[];
 } __attribute__((packed)) rsdt_t;
 
 typedef struct {
@@ -40,208 +32,135 @@ typedef struct {
     uint32_t smi_cmd;
     uint8_t acpi_enable;
     uint8_t acpi_disable;
-    uint8_t s4bios_req;
-    uint8_t pstate_cnt;
-    uint32_t pm1a_evt_blk;
-    uint32_t pm1b_evt_blk;
+    uint8_t reserved2[10];
     uint32_t pm1a_cnt_blk;
     uint32_t pm1b_cnt_blk;
-    uint32_t pm2_cnt_blk;
-    uint32_t pm_tmr_blk;
-    uint32_t gpe0_blk;
-    uint32_t gpe1_blk;
-    uint8_t pm1_evt_len;
-    uint8_t pm1_cnt_len;
-    uint8_t pm2_cnt_len;
-    uint8_t pm_tmr_len;
-    uint8_t gpe0_blk_len;
-    uint8_t gpe1_blk_len;
-    uint8_t gpe1_base;
-    uint8_t cst_cnt;
-    uint16_t p_lvl2_lat;
-    uint16_t p_lvl3_lat;
-    uint16_t flush_size;
-    uint16_t flush_stride;
-    uint8_t duty_offset;
-    uint8_t duty_width;
-    uint8_t day_alrm;
-    uint8_t mon_alrm;
-    uint8_t century;
-    uint16_t iapc_boot_arch;
-    uint8_t reserved2;
-    uint32_t flags;
 } __attribute__((packed)) fadt_t;
 
-static rsdp_t* rsdp = 0;
-static fadt_t* fadt = 0;
 static uint16_t pm1a_cnt = 0;
 static uint16_t pm1b_cnt = 0;
 static uint16_t slp_typa = 0;
 static uint16_t slp_typb = 0;
-static int acpi_initialized = 0;
+static int acpi_ok = 0;
+static int acpi_initialized;
+
+
+
+
+static uint8_t checksum(void* ptr, uint32_t len) {
+    uint8_t sum = 0;
+    uint8_t* p = ptr;
+    while (len--) sum += *p++;
+    return sum;
+}
 
 static rsdp_t* find_rsdp(void) {
-    uint8_t* ptr;
-    
-    for (ptr = (uint8_t*)0x000E0000; ptr < (uint8_t*)0x00100000; ptr += 16) {
-        if (ptr[0] == 'R' && ptr[1] == 'S' && ptr[2] == 'D' && 
-            ptr[3] == ' ' && ptr[4] == 'P' && ptr[5] == 'T' && 
-            ptr[6] == 'R' && ptr[7] == ' ') {
-            uint8_t sum = 0;
-            for (int i = 0; i < 20; i++)
-                sum += ptr[i];
-            if (sum == 0)
-                return (rsdp_t*)ptr;
+    for (uint8_t* p = (uint8_t*)0xE0000; p < (uint8_t*)0x100000; p += 16) {
+        if (!checksum(p, 20) &&
+            p[0]=='R'&&p[1]=='S'&&p[2]=='D'&&p[3]==' ' &&
+            p[4]=='P'&&p[5]=='T'&&p[6]=='R'&&p[7]==' ') {
+            return (rsdp_t*)p;
         }
     }
-    
-    uint16_t* ebda_addr = (uint16_t*)0x040E;
-    uint32_t ebda = (*ebda_addr) << 4;
-    if (ebda) {
-        for (ptr = (uint8_t*)ebda; ptr < (uint8_t*)(ebda + 1024); ptr += 16) {
-            if (ptr[0] == 'R' && ptr[1] == 'S' && ptr[2] == 'D' && 
-                ptr[3] == ' ' && ptr[4] == 'P' && ptr[5] == 'T' && 
-                ptr[6] == 'R' && ptr[7] == ' ') {
-                uint8_t sum = 0;
-                for (int i = 0; i < 20; i++)
-                    sum += ptr[i];
-                if (sum == 0)
-                    return (rsdp_t*)ptr;
-            }
-        }
-    }
-    
     return 0;
 }
 
 static fadt_t* find_fadt(rsdt_t* rsdt) {
-    int entries = (rsdt->header.length - sizeof(acpi_header_t)) / 4;
-    
-    for (int i = 0; i < entries; i++) {
-        acpi_header_t* h = (acpi_header_t*)rsdt->tables[i];
-        if (h->signature[0] == 'F' && h->signature[1] == 'A' && 
-            h->signature[2] == 'C' && h->signature[3] == 'P') {
+    int count = (rsdt->header.length - sizeof(acpi_header_t)) / 4;
+    for (int i = 0; i < count; i++) {
+        acpi_header_t* h = (acpi_header_t*)rsdt->entries[i];
+        if (h->signature[0]=='F'&&h->signature[1]=='A'&&
+            h->signature[2]=='C'&&h->signature[3]=='P')
             return (fadt_t*)h;
-        }
     }
     return 0;
-}
-
-static uint8_t* find_dsdt(fadt_t* fadt) {
-    return (uint8_t*)fadt->dsdt;
 }
 
 static int parse_s5(uint8_t* dsdt) {
-    uint32_t dsdt_len = ((acpi_header_t*)dsdt)->length;
-    uint8_t* ptr = dsdt + sizeof(acpi_header_t);
-    uint8_t* end = dsdt + dsdt_len;
-    
-    while (ptr < end - 4) {
-        if (ptr[0] == '_' && ptr[1] == 'S' && ptr[2] == '5' && ptr[3] == '_') {
-            ptr += 4;
-            
-            if (*ptr == 0x12) {
-                ptr++;
-                ptr++;
-                if (*ptr == 0x04) {
-                    ptr++;
-                    if (*ptr == 0x0A) {
-                        ptr++;
-                        slp_typa = *ptr++;
-                    }
-                    if (*ptr == 0x0A) {
-                        ptr++;
-                        slp_typb = *ptr++;
-                    }
-                    return 1;
-                }
-            }
+    acpi_header_t* h = (acpi_header_t*)dsdt;
+    uint8_t* p = dsdt + sizeof(acpi_header_t);
+    uint8_t* end = dsdt + h->length;
+
+    while (p + 4 < end) {
+        if (p[0]=='_'&&p[1]=='S'&&p[2]=='5'&&p[3]=='_') {
+            p += 4;
+            p += 2; 
+            if (*p++ == 0x0A) slp_typa = *p++;
+            if (*p++ == 0x0A) slp_typb = *p++;
+            return 1;
         }
-        ptr++;
+        p++;
     }
     return 0;
 }
 
+
 void acpi_init(void) {
-    rsdp = find_rsdp();
-    if (!rsdp) {
-        acpi_initialized = 0;
-        return;
-    }
-    
+    rsdp_t* rsdp = find_rsdp();
+    if (!rsdp) return;
+
     rsdt_t* rsdt = (rsdt_t*)rsdp->rsdt_address;
-    fadt = find_fadt(rsdt);
-    if (!fadt) {
-        acpi_initialized = 0;
-        return;
-    }
-    
+    fadt_t* fadt = find_fadt(rsdt);
+    if (!fadt) return;
+
     pm1a_cnt = fadt->pm1a_cnt_blk;
     pm1b_cnt = fadt->pm1b_cnt_blk;
-    
-    uint8_t* dsdt = find_dsdt(fadt);
-    if (dsdt && parse_s5(dsdt)) {
-        acpi_initialized = 1;
-    } else {
-        acpi_initialized = 0;
-    }
+
+    if (!pm1a_cnt) return;
+
+    if (parse_s5((uint8_t*)fadt->dsdt))
+        acpi_ok = 1;
 }
 
 int acpi_is_available(void) {
-    return acpi_initialized;
+    return acpi_ok;
 }
 
-void power_reboot(void) {
-    uint8_t temp;
-    asm volatile("cli");
-    
-    do {
-        temp = inb(0x64);
-        if (temp & 0x01)
-            inb(0x60);
-    } while (temp & 0x02);
-    
-    outb(0x64, 0xFE);
-    
-    asm volatile("lidt %0" : : "m"((uint16_t){0}));
-    asm volatile("int $0x03");
-    
-    for(;;) asm volatile("hlt");
-}
 
 void power_shutdown(void) {
-    asm volatile("cli");
-    
-    if (acpi_initialized && pm1a_cnt) {
+    term_puts("[power] shutdown requested\n");
+
+    if (acpi_initialized && pm1a_cnt && slp_typa) {
+        term_puts("[power] trying ACPI S5\n");
+
         uint16_t slp_en = 1 << 13;
-        outw(pm1a_cnt, slp_en | (slp_typa << 10));
+        outw(pm1a_cnt, (slp_typa << 10) | slp_en);
+
         if (pm1b_cnt)
-            outw(pm1b_cnt, slp_en | (slp_typb << 10));
+            outw(pm1b_cnt, (slp_typb << 10) | slp_en);
+
+        for (volatile int i = 0; i < 10000000; i++);
     }
-    
-    outw(0xB004, 0x2000);
+
+    term_puts("[power] trying QEMU/Bochs ports\n");
     outw(0x604, 0x2000);
+    outw(0xB004, 0x2000);
     outw(0x4004, 0x3400);
-    
-    uint16_t dev = pci_find_device(0x8086, 0x7113);
-    if (dev != 0xFFFF) {
-        uint32_t pm_base = pci_config_read_dword(0, dev >> 8, dev & 0xFF, 0x40);
-        pm_base &= 0xFFC0;
-        if (pm_base) {
-            outw(pm_base + 4, 0x2000);
-        }
-    }
-    
-    for(;;) asm volatile("hlt");
+
+    for (volatile int i = 0; i < 10000000; i++);
+
+    term_puts("[power] shutdown failed, halting CPU\n");
+    asm volatile("cli");
+    for (;;)
+        asm volatile("hlt");
+}
+
+
+void power_reboot(void) {
+    asm volatile("cli");
+
+    while (inb(0x64) & 0x02);
+    outb(0x64, 0xFE);
+
+    asm volatile("lidt (%0)" :: "r"(0));
+    asm volatile("int $0x03");
+
+    for (;;)
+        asm volatile("hlt");
 }
 
 void power_halt(void) {
     asm volatile("cli");
-    for(;;) asm volatile("hlt");
-}
-
-void power_suspend(void) {
-    asm volatile("cli");
-    asm volatile("hlt");
-    asm volatile("sti");
+    for (;;)
+        asm volatile("hlt");
 }
