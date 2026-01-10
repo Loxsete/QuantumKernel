@@ -6,11 +6,11 @@ A minimal 32-bit operating system kernel with basic system call support and an i
 
 - Protected mode with GDT and IDT
 - Keyboard input handling
-- VGA text mode terminal
+- Framebuffer 
 - System call interface (int 0x80)
 
   
-<img width="632" height="412" alt="image" src="https://github.com/user-attachments/assets/d2272671-1749-4c68-bee2-a456ee9a8a1a" />
+<img width="661" height="373" alt="ggdssdgsdg" src="https://github.com/user-attachments/assets/6a6287d6-eab9-4c3f-a293-3bc7f74d715a" />
 
 
 
