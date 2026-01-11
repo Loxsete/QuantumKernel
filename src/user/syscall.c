@@ -5,10 +5,12 @@
 #include "drivers/power.h"
 #include "syscall/syscall.h"
 #include "syscall/syscall_raw.h"
+#include "lib/libc.h"
 #include "drivers/ata.h"
 #include "fs/fat32.h"
 #include "drivers/rtc.h"
 #include "drivers/net/ip.h"
+#include "kernel/task.h"
 #include "drivers/net/icmp.h"
 #include "drivers/net/arp.h"
 #include "drivers/net/ethernet.h"
@@ -72,13 +74,49 @@ void syscall_dispatch(regs_t* r) {
             r->eax = i;
             break;
         }
+
+        case SYS_YIELD:
+            task_schedule();
+            r->eax = 0;
+            break;
+
+        case SYS_PS: {
+            task_t* t = task_get_list();
+            task_t* start = t;
+        
+            term_puts("PID   STATE     NAME\n");
+        
+            do {
+                char buf[32];
+        
+                itoa(t->pid, buf, 10);
+                term_puts(buf);
+                term_puts("   ");
+        
+                if (t->state == TASK_RUNNING) term_puts("RUN      ");
+                else if (t->state == TASK_SLEEPING) term_puts("SLEEP    ");
+                else term_puts("ZOMB     ");
+        
+                term_puts(t->name);
+                term_puts("\n");
+        
+                t = t->next;
+            } while (t != start);
+        
+            r->eax = 0;
+            break;
+        }
+        
+        
+        case SYS_KILL:
+            r->eax = task_kill(r->ebx); 
+            break;
         
         
         case SYS_EXIT:
-            term_puts("\n[process exited]\n");
-            for (;;)
-                asm volatile("hlt");
-            break;
+            task_exit();
+            __builtin_unreachable();
+        
             
         case SYS_CLEAR:
             term_clear();
@@ -109,12 +147,11 @@ void syscall_dispatch(regs_t* r) {
             break;
         }
         
-        case SYS_SLEEP: {
-            uint32_t ms = r->ebx;
-            sleep(ms);
+        case SYS_SLEEP:
+            task_sleep(r->ebx);
             r->eax = 0;
             break;
-        }
+        
         
         case SYS_CLOSE: {
             int fd = r->ebx;
@@ -520,3 +557,19 @@ __attribute__((used))
 void halt_sys(void) {
     syscall_invoke(SYS_HALT, 0, 0, 0);
 }
+
+__attribute__((used))
+void yield(void) {
+    syscall_invoke(SYS_YIELD, 0, 0, 0);
+}
+
+__attribute__((used))
+void ps_sys(void) {
+    syscall_invoke(SYS_PS, 0, 0, 0);
+}
+
+__attribute__((used))
+int kill(int pid) {
+    return syscall_invoke(SYS_KILL, pid, 0, 0);
+}
+

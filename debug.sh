@@ -1,24 +1,28 @@
 #!/bin/sh
 
 BUILD_DIR=build
+ISO_IMG="$BUILD_DIR/QuantumKernel.iso"
 DISK_IMG="$BUILD_DIR/disk.img"
 
 echo "Starting QEMU with debugging enabled..."
 echo ""
 echo "Useful QEMU monitor commands:"
-echo "  Ctrl+Alt+2    - Switch to QEMU monitor"
-echo "  Ctrl+Alt+1    - Switch back to console"
-echo "  info registers - Show all CPU registers"
-echo "  info gdt       - Show GDT"
-echo "  info idt       - Show IDT"
-echo "  x/10i \$eip    - Disassemble at current EIP"
+echo " Ctrl+Alt+2  - QEMU monitor"
+echo " Ctrl+Alt+1  - Back to VGA"
+echo " info registers"
+echo " info gdt"
+echo " info idt"
+echo " x/10i $pc"
 echo ""
 
 qemu-system-x86_64 \
-    -kernel "$BUILD_DIR/kernel.bin" \
+    -vga std \
+    -boot d \
+    -cdrom "$ISO_IMG" \
     -hda "$DISK_IMG" \
     -m 128M \
     -monitor stdio \
     -d int,cpu_reset \
     -no-reboot \
-    -no-shutdown
+    -no-shutdown \
+    -rtc base=localtime,clock=host

@@ -106,6 +106,8 @@ void user_main(void) {
                 " reboot\n"
                 " poweroff\n"
                 " halt\n"
+                " kill\n"
+                " ps\n"
             );
         }
 
@@ -576,6 +578,25 @@ void user_main(void) {
             }
             puts("\n=== Test Complete ===\n");
         }
+
+        else if (!strcmp(cmd, "ps")) {
+            ps_sys();
+        }
+
+        else if (!strcmp(cmd, "kill")) {
+            char* ppid = next_token(&p);
+            if (!ppid) {
+                puts("usage: kill <pid>\n");
+            } else {
+                int pid = atoi(ppid);
+                if (kill(pid) == 0)
+                    puts("killed\n");
+                else
+                    puts("no such pid\n");
+            }
+        }
+        
+        
 
         else {
             puts("unknown command\n");

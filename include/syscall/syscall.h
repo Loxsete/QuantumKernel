@@ -34,6 +34,12 @@
 #define SYS_REBOOT     31
 #define SYS_SHUTDOWN   32
 #define SYS_HALT       33
+#define SYS_YIELD 34
+#define SYS_PS 35
+#define SYS_KILL 36
+
+
+
 typedef struct {
     uint32_t ip;
     uint32_t gateway;
@@ -79,5 +85,7 @@ int arp_add_sys(uint32_t ip, uint8_t* mac);
 int arp_get_entry_sys(int index, arp_entry_sys_t* entry);
 void reboot_sys(void);
 void shutdown_sys(void);
+void ps_sys(void);
+int kill(int pid);
 void halt_sys(void);
 #endif

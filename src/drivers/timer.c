@@ -1,5 +1,6 @@
 #include "drivers/timer.h"
 #include "drivers/terminal.h"
+#include "kernel/task.h"
 #include "drivers/io.h"
 #include <stdint.h>
 
@@ -10,10 +11,11 @@
 static volatile uint32_t ticks = 0;
 static uint32_t timer_frequency = 0;
 
+
 void timer_callback(void) {
     ticks++;
     draw_mouse();
-    
+    //task_schedule();
 }
 
 uint32_t get_tick_count(void) {

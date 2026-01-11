@@ -11,6 +11,7 @@
 #include "drivers/ata.h"
 #include "drivers/timer.h"
 #include "fs/fat32.h"
+#include "kernel/task.h"
 #include "lib/libc.h"
 #include "drivers/rtc.h"
 #include "lib/string.h"
@@ -162,6 +163,11 @@ void kernel_main(uint32_t magic, uint32_t mb_addr)
     boot_step("mouse");
     mouse_init();
     boot_ok();
+
+    boot_step("tasks");
+    task_init();
+    boot_ok();
+    
     
 
     boot_step("interrupts");
@@ -170,7 +176,11 @@ void kernel_main(uint32_t magic, uint32_t mb_addr)
 
     term_puts("\nSystem ready.\n");
     term_puts("Starting init...\n\n");
-    enter_user();
+    task_create(enter_user, "shell");
+    task_create(enter_user, "test");
+    
+    task_schedule();
+    
 
     boot_fail();
 }
