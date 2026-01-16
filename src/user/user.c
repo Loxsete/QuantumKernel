@@ -8,6 +8,8 @@
 #define BUF_SIZE 256
 #define FILE_BUF 512
 
+static char prompt_buf[128]; 
+
 static void strip_newline(char* s) {
     int l = strlen(s);
     while (l > 0 && (s[l - 1] == '\n' || s[l - 1] == '\r')) {
@@ -21,7 +23,10 @@ static void puts(const char* s) {
 }
 
 static void prompt(void) {
-    puts("\n> ");
+    if (getcwd(prompt_buf, sizeof(prompt_buf)) > 0) {
+        puts(prompt_buf);
+    }
+    puts("> ");
 }
 
 static char* next_token(char** s) {
@@ -38,6 +43,7 @@ static char* next_token(char** s) {
 
 void user_main(void) {
     char buf[BUF_SIZE];
+    prompt_buf[0] = '\0';
 
     puts(
         "\n"
@@ -309,14 +315,14 @@ void user_main(void) {
         }
         
         else if (!strcmp(cmd, "pwd")) {
-            uint32_t cluster = get_cwd_cluster_sys();
-            char xbuf[16];
-            itoa(cluster, xbuf, 10);
-            puts("cluster: ");
-            puts(xbuf);
-            puts("\n");
+            if (getcwd(prompt_buf, sizeof(prompt_buf)) > 0) {
+                puts(prompt_buf);
+                puts("\n");
+            } else {
+                puts("Failed to get current directory\n");
+            }
         }
-
+        
         else if (!strcmp(cmd, "sleep")) {
             char* t = next_token(&p);
             if (t)
@@ -605,4 +611,3 @@ void user_main(void) {
         prompt();
     }
 }
-

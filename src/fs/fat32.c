@@ -7,7 +7,13 @@
 
 static fat32_fs_t g_fs;
 static uint8_t sector_buffer[FAT32_SECTOR_SIZE];
-static uint8_t cluster_buffer[128 * FAT32_SECTOR_SIZE]; 
+static uint8_t cluster_buffer[128 * FAT32_SECTOR_SIZE];
+
+#define MAX_PATH_DEPTH 16
+#define MAX_NAME_LEN 12
+
+static char path_stack[MAX_PATH_DEPTH][MAX_NAME_LEN];
+static int path_depth = 0; 
 
 static uint32_t fat32_read_fat(uint32_t cluster) {
     if (cluster < 2 || cluster >= g_fs.total_clusters + 2)
@@ -785,26 +791,100 @@ uint32_t fat32_get_root_cluster(void) {
 
 uint32_t g_current_dir_cluster = 2;  
 
+
+void fat32_pwd(void) {
+    if (path_depth == 0) {
+        term_puts("/");
+        return;  
+    }
+
+    term_puts("/"); 
+    
+    for (int i = 0; i < path_depth; i++) {
+        term_puts(path_stack[i]);
+        if (i < path_depth - 1) {
+            term_puts("/"); 
+        }
+    }
+}
+int fat32_get_current_path(char* buffer, int buffer_size) {
+    if (!buffer || buffer_size <= 0)
+        return -1;
+    
+    if (path_depth == 0) {
+        if (buffer_size < 2) return -1;
+        buffer[0] = '/';
+        buffer[1] = '\0';
+        return 1;
+    }
+    
+    int pos = 0;
+    
+    if (pos < buffer_size - 1) {
+        buffer[pos++] = '/';
+    }
+    
+    for (int i = 0; i < path_depth; i++) {
+        int name_len = strlen(path_stack[i]);
+        
+        if (pos + name_len + 1 > buffer_size - 1) {
+            buffer[pos] = '\0';
+            return -1;  
+        }
+        
+        strcpy(buffer + pos, path_stack[i]);
+        pos += name_len;
+        
+        if (i < path_depth - 1) {
+            buffer[pos++] = '/';
+        }
+    }
+    
+    buffer[pos] = '\0';
+    return pos;
+}
+
 int fat32_chdir(const char* path) {
     if (!strcmp(path, "/")) {
         g_current_dir_cluster = g_fs.root_dir_first_cluster;
+        path_depth = 0;
         return 0;
     }
-    
+
     if (!strcmp(path, "..")) {
-        
-        g_current_dir_cluster = g_fs.root_dir_first_cluster;
+        if (path_depth > 0) {
+            path_depth--;
+            
+            if (path_depth == 0) {
+                g_current_dir_cluster = g_fs.root_dir_first_cluster;
+            } else {
+                uint32_t cluster = g_fs.root_dir_first_cluster;
+                for (int i = 0; i < path_depth; i++) {
+                    fat32_dirent_t entry;
+                    if (fat32_find_entry(cluster, path_stack[i], &entry, NULL, NULL) != 0)
+                        return -1;
+                    cluster = ((uint32_t)entry.first_cluster_high << 16) | entry.first_cluster_low;
+                }
+                g_current_dir_cluster = cluster;
+            }
+        }
         return 0;
     }
-    
+
     fat32_dirent_t entry;
     if (fat32_find_entry(g_current_dir_cluster, path, &entry, NULL, NULL) != 0)
         return -1;
-    
+
     if (!(entry.attr & FAT32_ATTR_DIRECTORY))
-        return -1;  
-    
-    g_current_dir_cluster = ((uint32_t)entry.first_cluster_high << 16) | 
-                            entry.first_cluster_low;
+        return -1;
+
+    g_current_dir_cluster = ((uint32_t)entry.first_cluster_high << 16) | entry.first_cluster_low;
+
+    if (path_depth < MAX_PATH_DEPTH) {
+        strncpy(path_stack[path_depth], path, MAX_NAME_LEN-1);
+        path_stack[path_depth][MAX_NAME_LEN-1] = '\0';
+        path_depth++;
+    }
     return 0;
 }
+

@@ -182,4 +182,6 @@ int fat32_chdir(const char* path);
 char* fat32_getcwd(char* buf, size_t size);  
 int fat32_opendir_path(const char* path, uint32_t* cluster);  
 
+int fat32_get_current_path(char* buffer, int buffer_size);
+
 #endif

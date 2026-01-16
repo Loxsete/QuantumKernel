@@ -74,6 +74,18 @@ void syscall_dispatch(regs_t* r) {
             r->eax = i;
             break;
         }
+        case SYS_GETCWD: {
+            char* buffer = (char*)r->ebx;
+            int size = r->ecx;
+            if (!buffer || size <= 0) {
+                r->eax = -1;
+                break;
+            }
+            
+            int result = fat32_get_current_path(buffer, size);
+            r->eax = result;
+            break;
+        }
 
         case SYS_YIELD:
             task_schedule();
@@ -573,3 +585,7 @@ int kill(int pid) {
     return syscall_invoke(SYS_KILL, pid, 0, 0);
 }
 
+__attribute__((used))
+int getcwd(char* buf, int size) {
+    return syscall_invoke(SYS_GETCWD, (int)buf, size, 0);
+}

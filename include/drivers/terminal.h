@@ -2,15 +2,14 @@
 #define FB_TERMINAL_H
 #include <stdint.h>
 
-#define TERM_COLOR_BG      0x0012181F
-#define TERM_COLOR_FG      0x00E6EDF3
-#define TERM_COLOR_DIM     0x0090A4AE
+#define TERM_COLOR_BG      0x000B001F   
+#define TERM_COLOR_FG      0x00FFD9E0   
+#define TERM_COLOR_DIM     0x005C2C6D  
 
-#define TERM_COLOR_OK      0x002ECC71
-#define TERM_COLOR_FAIL    0x00E74C3C
-#define TERM_COLOR_WARN    0x00F1C40F
-#define TERM_COLOR_INFO    0x003498DB
-
+#define TERM_COLOR_OK      0x0032FF6A   
+#define TERM_COLOR_FAIL    0x00FF3278   
+#define TERM_COLOR_WARN    0x00FF7142   
+#define TERM_COLOR_INFO    0x0062FFFF   
 void term_init(void);
 void term_clear(void);
 void term_putc(char c);

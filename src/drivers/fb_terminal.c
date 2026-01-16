@@ -189,19 +189,19 @@ static void restore_cursor_background(int x, int y)
 static void draw_cursor_shape(int x, int y)
 {
     const char cursor_pattern[CURSOR_SIZE][CURSOR_SIZE] = {
-        {1,0,0,0,0,0,0,0,0,0,0},
-        {1,1,0,0,0,0,0,0,0,0,0},
-        {1,2,1,0,0,0,0,0,0,0,0},
-        {1,2,2,1,0,0,0,0,0,0,0},
-        {1,2,2,2,1,0,0,0,0,0,0},
-        {1,2,2,2,2,1,0,0,0,0,0},
-        {1,2,2,2,2,2,1,0,0,0,0},
-        {1,2,2,2,2,2,2,1,0,0,0},
-        {1,2,2,2,2,2,2,2,1,0,0},
-        {1,2,2,2,2,1,1,1,1,1,0},
-        {1,2,1,0,1,2,1,0,0,0,0},
+        {0,0,0,0,0,0,0,0,0,0,0},
+        {0,1,0,0,0,0,0,0,0,0,0},
+        {0,1,2,0,0,0,0,0,0,0,0},
+        {0,1,2,2,0,0,0,0,0,0,0},
+        {0,1,2,2,2,0,0,0,0,0,0},
+        {0,1,2,2,2,2,0,0,0,0,0},
+        {0,1,2,2,2,2,2,0,0,0,0},
+        {0,1,2,2,2,2,2,2,0,0,0},
+        {0,1,2,2,2,2,2,2,2,0,0},
+        {0,1,2,2,2,1,1,1,1,1,0},
+        {0,1,2,0,1,2,1,0,0,0,0},
     };
-    
+
     for (int dy = 0; dy < CURSOR_SIZE; dy++)
     {
         for (int dx = 0; dx < CURSOR_SIZE; dx++)
@@ -209,8 +209,8 @@ static void draw_cursor_shape(int x, int y)
             uint32_t color = 0;
             switch (cursor_pattern[dy][dx])
             {
-                case 1: color = 0xFFFFFF; break;
-                case 2: color = 0x000000; break;
+                case 1: color = 0x000000; break;     
+                case 2: color = 0xFF44FF; break;     
                 default: continue;
             }
             putpixel(x + dx, y + dy, color);

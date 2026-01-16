@@ -88,4 +88,5 @@ void shutdown_sys(void);
 void ps_sys(void);
 int kill(int pid);
 void halt_sys(void);
+int getcwd(char* buf, int size);
 #endif
