@@ -114,6 +114,7 @@ void user_main(void) {
                 " halt\n"
                 " kill\n"
                 " ps\n"
+                " exec\n"
             );
         }
 
@@ -599,6 +600,18 @@ void user_main(void) {
                     puts("killed\n");
                 else
                     puts("no such pid\n");
+            }
+        }
+
+        else if (!strcmp(cmd, "exec")) {
+            char* path = next_token(&p);
+            if (!path) {
+                puts("usage: exec <program>\n");
+            } else {
+                int result = exec_sys(path);
+                if (result != 0) {
+                    puts("exec failed\n");
+                }
             }
         }
         

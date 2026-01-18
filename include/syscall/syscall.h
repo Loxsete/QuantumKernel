@@ -37,6 +37,7 @@
 #define SYS_YIELD 34
 #define SYS_PS 35
 #define SYS_KILL 36
+#define SYS_EXEC 37
 
 
 
@@ -89,4 +90,5 @@ void ps_sys(void);
 int kill(int pid);
 void halt_sys(void);
 int getcwd(char* buf, int size);
+int exec_sys(const char* path);
 #endif

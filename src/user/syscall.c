@@ -12,6 +12,7 @@
 #include "drivers/net/ip.h"
 #include "kernel/task.h"
 #include "drivers/net/icmp.h"
+#include "kernel/exec.h"
 #include "drivers/net/arp.h"
 #include "drivers/net/ethernet.h"
 
@@ -72,6 +73,12 @@ void syscall_dispatch(regs_t* r) {
             }
         
             r->eax = i;
+            break;
+        }
+
+        case SYS_EXEC: {
+            const char* path = (const char*)r->ebx;
+            r->eax = exec(path);
             break;
         }
         case SYS_GETCWD: {
@@ -588,4 +595,9 @@ int kill(int pid) {
 __attribute__((used))
 int getcwd(char* buf, int size) {
     return syscall_invoke(SYS_GETCWD, (int)buf, size, 0);
+}
+
+__attribute__((used))
+int exec_sys(const char* path) {
+    return syscall_invoke(SYS_EXEC, (int)path, 0, 0);
 }

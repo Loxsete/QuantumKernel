@@ -15,6 +15,7 @@ CFLAGS="-ffreestanding -nostdlib -fno-builtin -fno-stack-protector -Wall -Wextra
 ASFLAGS="-f elf32"
 LDFLAGS="-m elf_i386"
 
+# Только директории ядра, БЕЗ userspace
 SRC_DIRS="src/kernel src/cpu src/drivers src/mm src/user src/syscall src/lib src/fs src/errors src/drivers/pci src/drivers/rtl8139 src/drivers/net"
 
 GREEN='\033[0;32m'
@@ -53,6 +54,24 @@ $LD $LDFLAGS -T src/kernel/link.ld \
     "$BUILD_DIR"/*.o \
     -o "$BUILD_DIR/kernel.elf"
 
+echo "${BLUE}[*] Building userspace programs${NC}"
+if [ -d "userspace" ]; then
+    for file in userspace/*.c; do
+        [ -f "$file" ] || continue
+        name=$(basename "$file" .c)
+        echo "    ${GREEN}BUILD${NC} $name"
+        
+        # Компилируем в объектный файл
+        $CC -m32 -ffreestanding -nostdlib -c "$file" -o "$BUILD_DIR/${name}.o"
+        
+        # Линкуем в отдельный ELF
+        $LD -m elf_i386 -T userspace/link.ld "$BUILD_DIR/${name}.o" -o "$BUILD_DIR/${name}.elf"
+        
+        # Удаляем временный объектный файл
+        rm "$BUILD_DIR/${name}.o"
+    done
+fi
+
 echo "${BLUE}[*] Creating FAT32 disk${NC}"
 dd if=/dev/zero of="$DISK_IMG" bs=1M count=16 2>/dev/null
 mkfs.fat -F 32 "$DISK_IMG"
@@ -64,6 +83,10 @@ mcopy -i "$DISK_IMG" "$BUILD_DIR/tz.txt" ::tz.txt
 echo "Type help to view commands, thanks for download <3" > "$BUILD_DIR/help.txt"
 mcopy -i "$DISK_IMG" "$BUILD_DIR/help.txt" ::help.txt
 
+# Копируем пользовательские программы
+if [ -f "$BUILD_DIR/hello.elf" ]; then
+    mcopy -i "$DISK_IMG" "$BUILD_DIR/hello.elf" ::hello.elf
+fi
 
 echo "${BLUE}[*] Preparing GRUB ISO${NC}"
 mkdir -p "$ISO_DIR/boot/grub"
@@ -86,8 +109,8 @@ echo "${GREEN}[✓] Build complete${NC}"
 echo "${BLUE}[*] ISO: $ISO_IMG${NC}"
 echo "${BLUE}[*] Disk: $DISK_IMG${NC}"
 echo ""
-
 echo "${BLUE}[*] Running QEMU${NC}"
+
 qemu-system-x86_64 \
     -vga std \
     -boot d \
