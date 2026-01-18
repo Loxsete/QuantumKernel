@@ -21,9 +21,8 @@
 #include "drivers/net/ip.h"
 #include "drivers/rtl8139.h"
 #include "drivers/mouse.h"
-
-
-
+#include "kernel/memory.h"
+#include "cpu/paging.h"
 
 static void boot_step(const char *name)
 {
@@ -46,13 +45,11 @@ static void boot_fail(void)
     term_set_color(TERM_COLOR_FAIL);
     term_puts("[ FAIL ]\n");
     term_reset_color();
-
     term_puts("kernel panic: fatal error\n");
     asm volatile("cli");
     for (;;)
         asm volatile("hlt");
 }
-
 
 void kernel_main(uint32_t magic, uint32_t mb_addr)
 {
@@ -82,25 +79,37 @@ void kernel_main(uint32_t magic, uint32_t mb_addr)
     
     if (!fb_ok)
         term_init();
-
+    
     term_puts("QuantumKernel booting...\n\n");
-
+    
     boot_step("gdt");
     gdt_init();
     boot_ok();
-
+    
     boot_step("tss");
     tss_init();
     boot_ok();
-
+    
+    boot_step("memory");
+    uint32_t mem_size = 0x10000000;
+    if (mbi->flags & (1 << 0)) {
+        mem_size = mbi->mem_upper * 1024;
+    }
+    memory_init(mem_size);
+    boot_ok();
+    
+    boot_step("paging");
+    paging_init();
+    boot_ok();
+    
     boot_step("pic");
     pic_remap();
     boot_ok();
-
+    
     boot_step("idt");
     idt_init();
     boot_ok();
-
+    
     boot_step("ata");
     ata_init();
     ata_error_t err = ata_identify();
@@ -112,16 +121,16 @@ void kernel_main(uint32_t magic, uint32_t mb_addr)
         boot_fail();
     }
     boot_ok();
-
+    
     boot_step("fat32");
     fat32_init();
     fat32_mount();
     boot_ok();
-
+    
     boot_step("timezone");
     load_timezone();
     boot_ok();
-
+    
     rtc_time_t t = rtc_get_local_time();
     term_puts("\nTime: ");
     char buf[8];
@@ -131,56 +140,54 @@ void kernel_main(uint32_t magic, uint32_t mb_addr)
     itoa(t.min, buf, 10);
     term_puts(buf);
     term_puts("\n");
-
+    
     boot_step("timer");
     timer_init(100);
     boot_ok();
-
+    
     boot_step("syscall");
     extern void syscall_handler(void);
     idt_set_gate(0x80, (uint32_t)syscall_handler, 0x08, 0xEE);
     boot_ok();
-
+    
     boot_step("pci");
     pci_enumerate();
     pci_register_drivers();
     boot_ok();
-
-	boot_step("acpi");
+    
+    boot_step("acpi");
     acpi_init();
     if (acpi_is_available())
         boot_ok();
     else {
         term_puts("[ WARN ]\n");
     }
-
+    
     boot_step("net");
     eth_init(mac_addr);
     arp_init(0x0A01A8C0);
     ip_init(0x0A01A8C0);
     boot_ok();
-
+    
     boot_step("mouse");
     mouse_init();
     boot_ok();
-
+    
     boot_step("tasks");
     task_init();
     boot_ok();
     
-    
-
     boot_step("interrupts");
     asm volatile("sti");
     boot_ok();
-
+    
     term_puts("\nSystem ready.\n");
     term_puts("Starting init...\n\n");
+    
     task_create(enter_user, "shell");
     task_create(enter_user, "test");
     
     task_schedule();
     
-
     boot_fail();
 }
