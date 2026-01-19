@@ -75,10 +75,8 @@ if [ -d "userspace" ]; then
         name=$(basename "$file" .c)
         echo "    ${GREEN}BUILD${NC} $name"
         
-        # Компілюємо з включенням libc headers
         $CC -m32 -ffreestanding -nostdlib -fno-stack-protector -fno-builtin -Iuserspace/libc/include -c "$file" -o "$BUILD_DIR/${name}.o"
         
-        # Лінкуємо з libc
         $LD -m elf_i386 -T userspace/link.ld "$BUILD_DIR/${name}.o" "$BUILD_DIR/libc.a" -o "$BUILD_DIR/${name}.elf"
         
         rm "$BUILD_DIR/${name}.o"
