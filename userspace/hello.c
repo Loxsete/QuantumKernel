@@ -13,7 +13,7 @@ void _start(void) {
     );
     
     asm volatile(
-        "mov $6, %%eax\n"      // SYS_EXIT
+        "mov $3, %%eax\n"      // SYS_EXIT
         "int $0x80\n"
         :
         :

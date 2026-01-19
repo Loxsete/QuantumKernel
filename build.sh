@@ -15,7 +15,6 @@ CFLAGS="-ffreestanding -nostdlib -fno-builtin -fno-stack-protector -Wall -Wextra
 ASFLAGS="-f elf32"
 LDFLAGS="-m elf_i386"
 
-# Только директории ядра, БЕЗ userspace
 SRC_DIRS="src/kernel src/cpu src/drivers src/mm src/user src/syscall src/lib src/fs src/errors src/drivers/pci src/drivers/rtl8139 src/drivers/net"
 
 GREEN='\033[0;32m'
@@ -61,13 +60,10 @@ if [ -d "userspace" ]; then
         name=$(basename "$file" .c)
         echo "    ${GREEN}BUILD${NC} $name"
         
-        # Компилируем в объектный файл
         $CC -m32 -ffreestanding -nostdlib -c "$file" -o "$BUILD_DIR/${name}.o"
         
-        # Линкуем в отдельный ELF
         $LD -m elf_i386 -T userspace/link.ld "$BUILD_DIR/${name}.o" -o "$BUILD_DIR/${name}.elf"
         
-        # Удаляем временный объектный файл
         rm "$BUILD_DIR/${name}.o"
     done
 fi
@@ -83,7 +79,6 @@ mcopy -i "$DISK_IMG" "$BUILD_DIR/tz.txt" ::tz.txt
 echo "Type help to view commands, thanks for download <3" > "$BUILD_DIR/help.txt"
 mcopy -i "$DISK_IMG" "$BUILD_DIR/help.txt" ::help.txt
 
-# Копируем пользовательские программы
 if [ -f "$BUILD_DIR/hello.elf" ]; then
     mcopy -i "$DISK_IMG" "$BUILD_DIR/hello.elf" ::hello.elf
 fi
