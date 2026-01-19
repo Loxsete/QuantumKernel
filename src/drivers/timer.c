@@ -15,7 +15,7 @@ static uint32_t timer_frequency = 0;
 void timer_callback(void) {
     ticks++;
     draw_mouse();
-    //task_schedule();
+    
 }
 
 uint32_t get_tick_count(void) {

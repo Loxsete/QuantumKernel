@@ -5,7 +5,7 @@
 
 
 typedef struct {
-    char signature[8];     // "RSD PTR "
+    char signature[8];     
     uint8_t checksum;
     char oem_id[6];
     uint8_t revision;

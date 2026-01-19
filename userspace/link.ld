@@ -1,25 +1,27 @@
-OUTPUT_FORMAT("elf32-i386")
-OUTPUT_ARCH(i386)
 ENTRY(_start)
 
 SECTIONS
 {
-    . = 0x08048000;
+    . = 0x400000;
     
     .text : {
         *(.text)
+        *(.text.*)
     }
     
     .rodata : {
-        *(.rodata*)
+        *(.rodata)
+        *(.rodata.*)
     }
     
     .data : {
         *(.data)
+        *(.data.*)
     }
     
     .bss : {
-        *(.bss)
         *(COMMON)
+        *(.bss)
+        *(.bss.*)
     }
 }

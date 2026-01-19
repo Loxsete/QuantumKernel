@@ -2,7 +2,7 @@
 #include <stddef.h>
 #include <stdint.h>
 
-static uint8_t kernel_heap[1024*1024]; // 1 МБ под кучу
+static uint8_t kernel_heap[1024*1024]; 
 static void* heap = kernel_heap;
 
 void* malloc(size_t size) {

@@ -53,6 +53,21 @@ $LD $LDFLAGS -T src/kernel/link.ld \
     "$BUILD_DIR"/*.o \
     -o "$BUILD_DIR/kernel.elf"
 
+echo "${BLUE}[*] Building libc${NC}"
+if [ -d "userspace/libc" ]; then
+    LIBC_OBJS=""
+    for file in userspace/libc/src/*.c; do
+        [ -f "$file" ] || continue
+        name=$(basename "$file" .c)
+        echo "    ${GREEN}CC${NC} $file"
+        $CC -m32 -ffreestanding -nostdlib -fno-stack-protector -fno-builtin -Iuserspace/libc/include -c "$file" -o "$BUILD_DIR/libc_${name}.o"
+        LIBC_OBJS="$LIBC_OBJS $BUILD_DIR/libc_${name}.o"
+    done
+    
+    echo "    ${GREEN}AR${NC} libc.a"
+    ar rcs "$BUILD_DIR/libc.a" $LIBC_OBJS
+fi
+
 echo "${BLUE}[*] Building userspace programs${NC}"
 if [ -d "userspace" ]; then
     for file in userspace/*.c; do
@@ -60,9 +75,11 @@ if [ -d "userspace" ]; then
         name=$(basename "$file" .c)
         echo "    ${GREEN}BUILD${NC} $name"
         
-        $CC -m32 -ffreestanding -nostdlib -c "$file" -o "$BUILD_DIR/${name}.o"
+        # Компілюємо з включенням libc headers
+        $CC -m32 -ffreestanding -nostdlib -fno-stack-protector -fno-builtin -Iuserspace/libc/include -c "$file" -o "$BUILD_DIR/${name}.o"
         
-        $LD -m elf_i386 -T userspace/link.ld "$BUILD_DIR/${name}.o" -o "$BUILD_DIR/${name}.elf"
+        # Лінкуємо з libc
+        $LD -m elf_i386 -T userspace/link.ld "$BUILD_DIR/${name}.o" "$BUILD_DIR/libc.a" -o "$BUILD_DIR/${name}.elf"
         
         rm "$BUILD_DIR/${name}.o"
     done
@@ -105,7 +122,6 @@ echo "${BLUE}[*] ISO: $ISO_IMG${NC}"
 echo "${BLUE}[*] Disk: $DISK_IMG${NC}"
 echo ""
 echo "${BLUE}[*] Running QEMU${NC}"
-
 qemu-system-x86_64 \
     -vga std \
     -boot d \

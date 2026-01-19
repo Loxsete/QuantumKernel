@@ -1,24 +1,23 @@
+#include "libc/include/stdio.h"
+#include "libc/include/syscall.h"
+#include "libc/include/string.h"
+
 void _start(void) {
-    const char* msg = "Hello from user program!\n";
+    printf("Hello from userspace!\n");
+    printf("This is a test program.\n");
+    printf("Number: %d\n", 42);
+    printf("Hex: 0x%x\n", 0xDEADBEEF);
     
-    asm volatile(
-        "mov $1, %%eax\n"      // SYS_WRITE
-        "mov $1, %%ebx\n"      // fd = 1 (stdout)
-        "mov %0, %%ecx\n"      // buffer
-        "mov $26, %%edx\n"     // length
-        "int $0x80\n"
-        :
-        : "r"(msg)
-        : "eax", "ebx", "ecx", "edx"
-    );
     
-    asm volatile(
-        "mov $3, %%eax\n"      // SYS_EXIT
-        "int $0x80\n"
-        :
-        :
-        : "eax"
-    );
+    char buffer[64];
+    strcpy(buffer, "String test: ");
+    strcat(buffer, "success!");
+    puts(buffer);
     
-    while(1);
+    
+    printf("Sleeping for 1 second...\n");
+    sleep_ms(1000);
+    printf("Done!\n");
+    
+    exit();
 }
