@@ -98,6 +98,15 @@ if [ -f "$BUILD_DIR/hello.elf" ]; then
     mcopy -i "$DISK_IMG" "$BUILD_DIR/hello.elf" ::hello.elf
 fi
 
+echo "${BLUE}[*] Copying files from diskfiles/ to FAT32 disk${NC}"
+
+if [ -d "diskfiles" ]; then
+    mcopy -i "$DISK_IMG" -s diskfiles/* ::/
+    echo "   Copied contents of diskfiles/"
+else
+    echo "   Directory diskfiles/ not found — nothing extra copied"
+fi
+
 echo "${BLUE}[*] Preparing GRUB ISO${NC}"
 mkdir -p "$ISO_DIR/boot/grub"
 cp "$BUILD_DIR/kernel.elf" "$ISO_DIR/boot/kernel.elf"
@@ -131,3 +140,5 @@ qemu-system-x86_64 \
     -no-reboot \
     -no-shutdown \
     -rtc base=localtime,clock=host
+
+
