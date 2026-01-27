@@ -11,7 +11,7 @@ A minimal 32-bit operating system kernel with basic system call support and an i
 
   
 
-<img width="944" height="778" alt="screenshot" src="https://github.com/user-attachments/assets/96c5fd2f-1270-481d-b93f-628bbcd68d13" />
+<img width="1915" height="1078" alt="screenshot" src="https://github.com/user-attachments/assets/e38e8ee2-9973-43ba-a09d-a2c3bf76fc71" />
 
 
 
