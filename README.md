@@ -59,16 +59,6 @@ This will:
 5. Launch QEMU automatically
 
 
-## Running
-
-### With QEMU (automatic)
-
-The build script runs QEMU automatically after compilation. You can also run it manually:
-
-```bash
-qemu-system-x86_64 -kernel build/kernel.bin
-```
-
 
 ## System Calls
 
