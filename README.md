@@ -104,16 +104,10 @@ System calls follow the standard i386 calling convention:
 To debug with GDB:
 
 ```bash
-qemu-system-x86_64 -kernel build/kernel.bin -s -S
+./debug.sh
 ```
 
-In another terminal:
-```bash
-gdb build/kernel.bin
-(gdb) target remote localhost:1234
-(gdb) break kernel_main
-(gdb) continue
-```
+
 
 ## Contributing
 
