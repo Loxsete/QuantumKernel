@@ -12,12 +12,14 @@ static uint32_t fb_bpp;
 static uint32_t cursor_x;
 static uint32_t cursor_y;
 
-
-
 static uint32_t term_fg = TERM_COLOR_FG;
 static uint32_t term_bg = TERM_COLOR_BG;
 
+#define FONT_SCALE 2
 
+#define SCALED_FONT_WIDTH (FONT_WIDTH * FONT_SCALE)
+#define SCALED_FONT_HEIGHT (FONT_HEIGHT * FONT_SCALE)
+#define SCALED_FONT_Y_STEP (FONT_Y_STEP * FONT_SCALE)
 
 #define CURSOR_SIZE 11
 static uint32_t cursor_buffer[CURSOR_SIZE * CURSOR_SIZE];
@@ -72,22 +74,28 @@ static void draw_char(char ch, uint32_t x, uint32_t y)
         uint8_t line = glyph[row];
         for (uint32_t col = 0; col < FONT_WIDTH; col++)
         {
-            if (line & (1 << col))
-                putpixel(x + col, y + row, term_fg);
-            else
-                putpixel(x + col, y + row, term_bg);
+            uint32_t color = (line & (1 << (7 - col))) ? term_fg : term_bg;
+            
+            for (uint32_t sy = 0; sy < FONT_SCALE; sy++)
+            {
+                for (uint32_t sx = 0; sx < FONT_SCALE; sx++)
+                {
+                    putpixel(x + col * FONT_SCALE + sx, 
+                            y + row * FONT_SCALE + sy, 
+                            color);
+                }
+            }
         }
     }
 }
-
 
 void term_putc(char c)
 {
     if (c == '\n')
     {
         cursor_x = 0;
-        cursor_y += FONT_Y_STEP;
-        if (cursor_y + FONT_HEIGHT > fb_height)
+        cursor_y += SCALED_FONT_Y_STEP;
+        if (cursor_y + SCALED_FONT_HEIGHT > fb_height)
             cursor_y = 0;
         return;
     }
@@ -98,29 +106,29 @@ void term_putc(char c)
     }
     if (c == '\b' || c == 127)
     {
-        if (cursor_x >= FONT_WIDTH)
+        if (cursor_x >= SCALED_FONT_WIDTH)
         {
-            cursor_x -= FONT_WIDTH;
+            cursor_x -= SCALED_FONT_WIDTH;
             draw_char(' ', cursor_x, cursor_y);
         }
-        else if (cursor_y >= FONT_Y_STEP)
+        else if (cursor_y >= SCALED_FONT_Y_STEP)
         {
-            cursor_y -= FONT_Y_STEP;
-            cursor_x = fb_width - FONT_WIDTH;
+            cursor_y -= SCALED_FONT_Y_STEP;
+            cursor_x = fb_width - SCALED_FONT_WIDTH;
             draw_char(' ', cursor_x, cursor_y);
         }
         return;
     }
     if ((uint8_t)c < 32) return;
-    if (cursor_x + FONT_WIDTH > fb_width)
+    if (cursor_x + SCALED_FONT_WIDTH > fb_width)
     {
         cursor_x = 0;
-        cursor_y += FONT_Y_STEP;
+        cursor_y += SCALED_FONT_Y_STEP;
     }
-    if (cursor_y + FONT_HEIGHT > fb_height)
+    if (cursor_y + SCALED_FONT_HEIGHT > fb_height)
         cursor_y = 0;
     draw_char(c, cursor_x, cursor_y);
-    cursor_x += FONT_WIDTH;
+    cursor_x += SCALED_FONT_WIDTH;
 }
 
 void term_puts(const char *s)
@@ -144,8 +152,6 @@ void term_clear(void)
     last_mouse_x = -1;
     last_mouse_y = -1;
 }
-
-
 
 void term_init_fb(uint32_t addr, uint32_t w, uint32_t h, uint32_t pitch, uint32_t bpp)
 {
