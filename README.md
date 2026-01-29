@@ -108,13 +108,4 @@ To debug with GDB:
 
 
 
-## Contributing
-
-This is a learning project, but improvements are welcome! Areas for contribution:
-
-- Virtual filesystem implementation
-- Process/thread scheduling
-- User mode support
-- More device drivers (timer, disk, etc.)
-- Memory paging
 
