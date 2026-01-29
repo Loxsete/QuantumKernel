@@ -42,6 +42,15 @@ brew install nasm qemu i686-elf-gcc
 ```
 Note: On macOS, you may need to adjust the build script to use `i686-elf-gcc` instead of `gcc`.
 
+# QCC
+
+I also have a compiler and a mini-language for my kernel.  
+It is **host-specific** and relies solely on the syscodes of my operating system.  
+
+Here is the link to the compiler: [QCC](https://github.com/Loxsete/QCC)  
+
+The repository includes instructions on **compiling** and **loading `.elf` files** into the system.
+
 ## Building
 
 The project includes a simple build script that compiles all source files and creates a bootable kernel binary.
