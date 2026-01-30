@@ -1,7 +1,7 @@
 bits 32
 
 global enter_user
-extern user_main
+extern init_process
 
 enter_user:
     cli
@@ -21,6 +21,5 @@ enter_user:
     push eax
     
     push 0x1B
-    push user_main
-    
+    push init_process
     iret

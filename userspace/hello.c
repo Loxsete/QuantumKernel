@@ -4,20 +4,26 @@
 
 void _start(void) {
     printf("Hello from userspace!\n");
-    printf("This is a test program.\n");
-    printf("Number: %d\n", 42);
-    printf("Hex: 0x%x\n", 0xDEADBEEF);
     
     
-    char buffer[64];
-    strcpy(buffer, "String test: ");
-    strcat(buffer, "success!");
-    puts(buffer);
+    uint32_t cwd = get_cwd_cluster();
+    printf("CWD cluster: %d\n", cwd);
+    
+    uint32_t index = 0;
+    file_info_t entry;  
+    
+    printf("Directory listing:\n");
     
     
-    printf("Sleeping for 1 second...\n");
+    while (1) {
+        int ret = readdir(cwd, &index, &entry);
+        if (ret < 0)
+            break;
+        
+        printf(" - %s  (%d bytes)\n", entry.name, entry.size);
+    }
+    
+    printf("Done listing.\n");
     sleep_ms(1000);
-    printf("Done!\n");
-    
     exit();
 }

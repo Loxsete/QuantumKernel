@@ -7,10 +7,6 @@ void putchar(char c) {
     write(STDOUT, &c, 1);
 }
 
-void puts(const char* s) {
-    write(STDOUT, s, strlen(s));
-    putchar('\n');
-}
 
 static void print_num(uint32_t num, int base, int sign) {
     char buf[32];

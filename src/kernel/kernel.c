@@ -182,12 +182,15 @@ void kernel_main(uint32_t magic, uint32_t mb_addr)
     boot_ok();
     
     term_puts("\nSystem ready.\n");
-    term_puts("Starting init...\n\n");
+    term_puts("Starting init process...\n\n");
     
-    task_create(enter_user, "shell");
-    task_create(enter_user, "test");
+    
+    extern void init_process(void);
+    task_create(init_process, "init");
+    
     
     task_schedule();
+    
     
     boot_fail();
 }

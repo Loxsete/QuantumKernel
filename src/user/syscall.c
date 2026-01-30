@@ -1,3 +1,5 @@
+
+
 #include <stdint.h>
 #include "drivers/terminal.h"
 #include "drivers/keyboard.h"
@@ -16,17 +18,17 @@
 #include "drivers/net/arp.h"
 #include "drivers/net/ethernet.h"
 
-
-
 typedef struct regs {
     uint32_t edi, esi, ebp, esp;
     uint32_t ebx, edx, ecx, eax;
     uint32_t gs, fs, es, ds;
 } regs_t;
 
+
 #define MAX_FILES 16
 static fat32_file_t file_table[MAX_FILES];
 static int file_used[MAX_FILES] = {0};
+
 
 static uint32_t net_ip = 0;
 static uint32_t net_gateway = 0;
@@ -81,6 +83,7 @@ void syscall_dispatch(regs_t* r) {
             r->eax = exec(path);
             break;
         }
+        
         case SYS_GETCWD: {
             char* buffer = (char*)r->ebx;
             int size = r->ecx;
@@ -126,17 +129,14 @@ void syscall_dispatch(regs_t* r) {
             break;
         }
         
-        
         case SYS_KILL:
             r->eax = task_kill(r->ebx); 
             break;
-        
         
         case SYS_EXIT:
             task_exit();
             __builtin_unreachable();
         
-            
         case SYS_CLEAR:
             term_clear();
             r->eax = 0;
@@ -170,7 +170,6 @@ void syscall_dispatch(regs_t* r) {
             task_sleep(r->ebx);
             r->eax = 0;
             break;
-        
         
         case SYS_CLOSE: {
             int fd = r->ebx;
@@ -403,7 +402,7 @@ void syscall_dispatch(regs_t* r) {
             break;
         }
 
-		case SYS_REBOOT:
+        case SYS_REBOOT:
             term_puts("\nRebooting system...\n");
             power_reboot();
             break;
@@ -423,181 +422,4 @@ void syscall_dispatch(regs_t* r) {
             r->eax = -1;
             break;
     }
-}
-
-__attribute__((used))
-int write(int fd, const char* buf, uint32_t len) {
-    return syscall_invoke(SYS_WRITE, fd, (int)buf, len);
-}
-
-__attribute__((used))
-int read(int fd, char* buf, uint32_t len) {
-    if (fd != 0) return -1;
-    return syscall_invoke(SYS_READ, (int)buf, len, 0);
-}
-
-__attribute__((used))
-void exit(void) {
-    syscall_invoke(SYS_EXIT, 0, 0, 0);
-    for (;;) {}
-}
-
-__attribute__((used))
-void clear(void) {
-    syscall_invoke(SYS_CLEAR, 0, 0, 0);
-}
-
-__attribute__((used))
-int disk_read(uint32_t lba, void* buffer) {
-    return syscall_invoke(SYS_DISK_READ, lba, (int)buffer, 0);
-}
-
-__attribute__((used))
-int disk_write(uint32_t lba, const void* buffer) {
-    return syscall_invoke(SYS_DISK_WRITE, lba, (int)buffer, 0);
-}
-
-__attribute__((used))
-void sleep_sys(uint32_t ms) {
-    syscall_invoke(SYS_SLEEP, ms, 0, 0);
-}
-
-__attribute__((used))
-int open(const char* path, int flags) {
-    return syscall_invoke(SYS_OPEN, (int)path, flags, 0);
-}
-
-__attribute__((used))
-int close(int fd) {
-    return syscall_invoke(SYS_CLOSE, fd, 0, 0);
-}
-
-__attribute__((used))
-int file_read(int fd, void* buffer, uint32_t size) {
-    return syscall_invoke(SYS_FILE_READ, fd, (int)buffer, size);
-}
-
-__attribute__((used))
-int file_write(int fd, const void* buffer, uint32_t size) {
-    return syscall_invoke(SYS_FILE_WRITE, fd, (int)buffer, size);
-}
-
-__attribute__((used))
-int seek(int fd, int offset, int whence) {
-    return syscall_invoke(SYS_SEEK, fd, offset, whence);
-}
-
-__attribute__((used))
-int unlink(const char* path) {
-    return syscall_invoke(SYS_UNLINK, (int)path, 0, 0);
-}
-
-__attribute__((used))
-int mkdir(const char* path) {
-    return syscall_invoke(SYS_MKDIR, (int)path, 0, 0);
-}
-
-__attribute__((used))
-int readdir_sys(uint32_t cluster, uint32_t* index, void* info) {
-    return syscall_invoke(SYS_READDIR, cluster, (int)index, (int)info);
-}
-
-__attribute__((used))
-int chdir_sys(const char* path) {
-    return syscall_invoke(SYS_CHDIR, (int)path, 0, 0);
-}
-
-__attribute__((used))
-uint32_t get_cwd_cluster_sys(void) {
-    return syscall_invoke(SYS_GET_CWD_CLUSTER, 0, 0, 0);
-}
-
-__attribute__((used))
-int net_init_sys(uint32_t ip, uint32_t gateway, uint32_t netmask) {
-    return syscall_invoke(SYS_NET_INIT, ip, gateway, netmask);
-}
-
-__attribute__((used))
-int ping_sys(uint32_t ip) {
-    return syscall_invoke(SYS_PING, ip, 0, 0);
-}
-
-__attribute__((used))
-int ping_status_sys(void) {
-    return syscall_invoke(SYS_PING_STATUS, 0, 0, 0);
-}
-
-__attribute__((used))
-void ping_reset_sys(void) {
-    syscall_invoke(SYS_PING_RESET, 0, 0, 0);
-}
-
-__attribute__((used))
-int arp_request_sys(uint32_t ip) {
-    return syscall_invoke(SYS_ARP_REQUEST, ip, 0, 0);
-}
-
-__attribute__((used))
-int arp_lookup_sys(uint32_t ip, uint8_t* mac) {
-    return syscall_invoke(SYS_ARP_LOOKUP, ip, (int)mac, 0);
-}
-
-__attribute__((used))
-void arp_print_table_sys(void) {
-    syscall_invoke(SYS_ARP_PRINT, 0, 0, 0);
-}
-
-__attribute__((used))
-int get_net_status_sys(net_status_t* status) {
-    return syscall_invoke(SYS_NET_STATUS, (int)status, 0, 0);
-}
-
-__attribute__((used))
-int arp_add_sys(uint32_t ip, uint8_t* mac) {
-    return syscall_invoke(SYS_ARP_ADD, ip, (int)mac, 0);
-}
-
-__attribute__((used))
-int arp_get_entry_sys(int index, arp_entry_sys_t* entry) {
-    return syscall_invoke(SYS_ARP_GET_ENTRY, index, (int)entry, 0);
-}
-
-__attribute__((used))
-void reboot_sys(void) {
-    syscall_invoke(SYS_REBOOT, 0, 0, 0);
-}
-
-__attribute__((used))
-void shutdown_sys(void) {
-    syscall_invoke(SYS_SHUTDOWN, 0, 0, 0);
-}
-
-__attribute__((used))
-void halt_sys(void) {
-    syscall_invoke(SYS_HALT, 0, 0, 0);
-}
-
-__attribute__((used))
-void yield(void) {
-    syscall_invoke(SYS_YIELD, 0, 0, 0);
-}
-
-__attribute__((used))
-void ps_sys(void) {
-    syscall_invoke(SYS_PS, 0, 0, 0);
-}
-
-__attribute__((used))
-int kill(int pid) {
-    return syscall_invoke(SYS_KILL, pid, 0, 0);
-}
-
-__attribute__((used))
-int getcwd(char* buf, int size) {
-    return syscall_invoke(SYS_GETCWD, (int)buf, size, 0);
-}
-
-__attribute__((used))
-int exec_sys(const char* path) {
-    return syscall_invoke(SYS_EXEC, (int)path, 0, 0);
 }

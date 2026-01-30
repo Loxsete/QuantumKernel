@@ -1,4 +1,6 @@
-#include <stdint.h>
+
+
+#include "syscall.h"
 
 
 #define SYS_WRITE      1
@@ -63,12 +65,14 @@ int read(int fd, char* buf, uint32_t len) {
 
 void exit(void) {
     syscall(SYS_EXIT, 0, 0, 0);
-    while(1); 
+    while(1);  
 }
 
 void clear(void) {
     syscall(SYS_CLEAR, 0, 0, 0);
 }
+
+
 
 int disk_read(uint32_t lba, void* buffer) {
     return syscall(SYS_DISK_READ, lba, (int)buffer, 0);
@@ -78,9 +82,13 @@ int disk_write(uint32_t lba, const void* buffer) {
     return syscall(SYS_DISK_WRITE, lba, (int)buffer, 0);
 }
 
+
+
 void sleep_ms(uint32_t ms) {
     syscall(SYS_SLEEP, ms, 0, 0);
 }
+
+
 
 int open(const char* path, int flags) {
     return syscall(SYS_OPEN, (int)path, flags, 0);
@@ -110,7 +118,9 @@ int mkdir(const char* path) {
     return syscall(SYS_MKDIR, (int)path, 0, 0);
 }
 
-int readdir(uint32_t cluster, uint32_t* index, void* info) {
+
+
+int readdir(uint32_t cluster, uint32_t* index, file_info_t* info) {
     return syscall(SYS_READDIR, cluster, (int)index, (int)info);
 }
 
@@ -125,6 +135,8 @@ int getcwd(char* buf, int size) {
 uint32_t get_cwd_cluster(void) {
     return syscall(SYS_GET_CWD_CLUSTER, 0, 0, 0);
 }
+
+
 
 void yield(void) {
     syscall(SYS_YIELD, 0, 0, 0);
@@ -142,6 +154,8 @@ int exec(const char* path) {
     return syscall(SYS_EXEC, (int)path, 0, 0);
 }
 
+
+
 void reboot(void) {
     syscall(SYS_REBOOT, 0, 0, 0);
 }
@@ -153,6 +167,7 @@ void shutdown(void) {
 void halt(void) {
     syscall(SYS_HALT, 0, 0, 0);
 }
+
 
 
 int net_init(uint32_t ip, uint32_t gateway, uint32_t netmask) {
@@ -185,4 +200,22 @@ void arp_print_table(void) {
 
 int arp_add(uint32_t ip, uint8_t* mac) {
     return syscall(SYS_ARP_ADD, ip, (int)mac, 0);
+}
+
+int arp_get_entry(int index, arp_entry_t* entry) {
+    return syscall(SYS_ARP_GET_ENTRY, index, (int)entry, 0);
+}
+
+int net_status(net_status_t* status) {
+    return syscall(SYS_NET_STATUS, (int)status, 0, 0);
+}
+
+
+
+int rtc_time(rtc_time_t* out) {
+    return syscall(SYS_RTC_TIME, (int)out, 0, 0);
+}
+
+int timezone(int* out) {
+    return syscall(SYS_TIMEZONE, (int)out, 0, 0);
 }
